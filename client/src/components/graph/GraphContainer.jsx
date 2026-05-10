@@ -136,6 +136,7 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
     const computeIdRef = useRef(0);
     const communityCacheRef = useRef({});
     const [dynamicCommunities, setDynamicCommunities] = useState(null);
+    const lastBackboneKeyRef = useRef(null); // tracks backbone state to detect changes
 
     // Inicializar o grafo uma vez buscando deputados da API
     useEffect(() => {
@@ -174,7 +175,7 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
     }, [graph, onDeputiesLoaded]);
 
     // Carregar arestas quando o tipo de grafo muda
-    const loadEdges = useCallback(async (type) => {
+    const loadEdges = useCallback(async (type, backboneConfig = null) => {
         if (graph.order === 0) return;
 
         // Mostrar loading imediatamente
@@ -184,9 +185,18 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
         // Remover todas as arestas atuais
         graph.clearEdges();
 
-        const edgeUrl = type === 'coautoria'
-            ? 'http://localhost:8000/api/arestas-coautoria/'
-            : 'http://localhost:8000/api/arestas/';
+        let edgeUrl;
+        if (backboneConfig && backboneConfig.enabled) {
+            const params = new URLSearchParams({
+                metodo: backboneConfig.method,
+                tipo_grafo: type === 'coautoria' ? 'coautoria' : 'similaridade',
+            });
+            edgeUrl = `http://localhost:8000/api/arestas-backbone/?${params.toString()}`;
+        } else {
+            edgeUrl = type === 'coautoria'
+                ? 'http://localhost:8000/api/arestas-coautoria/'
+                : 'http://localhost:8000/api/arestas/';
+        }
 
         try {
             const res = await fetch(edgeUrl);
@@ -195,11 +205,13 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
             let maxC = 0;
 
             arestas.forEach((sim) => {
-                const edgeId = `${sim.deputado_1}-${sim.deputado_2}`;
                 const n1 = String(sim.deputado_1);
                 const n2 = String(sim.deputado_2);
+                const edgeId = `${n1}-${n2}`;
                 
-                const cVal = Number(sim.coautoria || 0);
+                // For backbone edges, peso is the weight; for normal edges, use existing fields
+                const simVal = Number(sim.similaridade || sim.peso || 0);
+                const cVal = Number(sim.coautoria || sim.peso || 0);
                 if (cVal > maxC) maxC = cVal;
 
                 if (graph.hasNode(n1) && graph.hasNode(n2) && !graph.hasEdge(edgeId)) {
@@ -207,8 +219,8 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
                         id: edgeId,
                         size: 1,
                         color: COLORS.edgeDefault,
-                        similaridade: Number(sim.similaridade || 0),
-                        coautoria: cVal,
+                        similaridade: simVal,
+                        coautoria: type === 'coautoria' ? cVal : Number(sim.coautoria || 0),
                     });
                 }
             });
@@ -225,13 +237,19 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
         }
     }, [graph, onMaxCoautoriaLoaded]);
 
-    // Efeito: carregar arestas quando dados estiverem prontos ou graphType mudar
+    // Efeito: carregar arestas quando dados estiverem prontos, graphType mudar, ou backbone mudar
     useEffect(() => {
         if (!dataLoaded) return;
-        if (lastGraphTypeRef.current !== graphType) {
-            loadEdges(graphType);
+        const backboneEnabled = filters?.backboneEnabled || false;
+        const backboneMethod = filters?.backboneMethod || 'high_salience_skeleton';
+        const backboneKey = backboneEnabled ? `backbone-${backboneMethod}-${graphType}` : `normal-${graphType}`;
+
+        if (lastBackboneKeyRef.current !== backboneKey) {
+            lastBackboneKeyRef.current = backboneKey;
+            lastGraphTypeRef.current = graphType;
+            loadEdges(graphType, backboneEnabled ? { enabled: true, method: backboneMethod } : null);
         }
-    }, [dataLoaded, graphType, loadEdges]);
+    }, [dataLoaded, graphType, filters?.backboneEnabled, filters?.backboneMethod, loadEdges]);
 
     useEffect(() => {
         if (!dataLoaded || filters?.separateBy !== 'comunidade') {
@@ -391,7 +409,8 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
 
             let hidden = sourceHidden || targetHidden;
 
-            if (!hidden) {
+            // Quando backbone está ativo, não filtra por similaridade/coautoria
+            if (!hidden && !filters.backboneEnabled) {
                 if (graphType === 'coautoria') {
                     // Filtrar por coautorias
                     const coaut = attrs.coautoria || 0;

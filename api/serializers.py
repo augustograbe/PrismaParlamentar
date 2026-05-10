@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from deputados.models import Deputado, Orgao, Proposicao, Votacao
-from grafos.models import GrafoAresta
+from grafos.models import GrafoAresta, BackboneAresta
 from analises.models import DeputadoAnalise
 
 
@@ -31,4 +31,10 @@ class DeputadoSerializer(serializers.ModelSerializer):
 class GrafoArestaSerializer(serializers.ModelSerializer):
     class Meta:
         model = GrafoAresta
+        fields = '__all__'
+
+
+class BackboneArestaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BackboneAresta
         fields = '__all__'

@@ -90,6 +90,8 @@ export default function Grafo() {
         coautoria: { min: 1, max: 50 },
         vertexSize: 'padrao',
         graphLayout: 'forceatlas2_clusters',
+        backboneEnabled: false,
+        backboneMethod: 'high_salience_skeleton',
     });
 
     // Persist pinned list to localStorage whenever it changes

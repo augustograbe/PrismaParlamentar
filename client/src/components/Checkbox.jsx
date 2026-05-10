@@ -6,19 +6,22 @@ import { COLORS, SPACING, FONTS } from '../constants/theme';
  * - label: texto ao lado do checkbox
  * - checked: estado do checkbox
  * - onChange: callback (boolean)
+ * - disabled: desabilita o checkbox
  * - style: estilos adicionais
  */
 export default function Checkbox({
     label = '',
     checked = false,
     onChange,
+    disabled = false,
     style = {},
 }) {
     const containerStyle = {
         display: 'flex',
         alignItems: 'center',
         gap: SPACING.sm,
-        cursor: 'pointer',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.5 : 1,
         ...style,
     };
 
@@ -44,7 +47,7 @@ export default function Checkbox({
     return (
         <div
             style={containerStyle}
-            onClick={() => onChange && onChange(!checked)}
+            onClick={() => !disabled && onChange && onChange(!checked)}
         >
             <div style={boxStyle}>
                 {checked && (
@@ -57,3 +60,4 @@ export default function Checkbox({
         </div>
     );
 }
+

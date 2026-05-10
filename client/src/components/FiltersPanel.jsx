@@ -23,6 +23,8 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
     const [vertexSize, setVertexSize] = useState('padrao');
     const [graphLayout, setGraphLayout] = useState('forceatlas2_clusters');
     const [communityAlgorithm, setCommunityAlgorithm] = useState('louvain');
+    const [backboneEnabled, setBackboneEnabled] = useState(false);
+    const [backboneMethod, setBackboneMethod] = useState('high_salience_skeleton');
 
     useEffect(() => {
         setCoautoria({ min: 1, max: maxCoautoriaLimit });
@@ -49,6 +51,11 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
     const layoutOptions = [
         { value: 'forceatlas2_spread', label: 'ForceAtlas2 (Espalhado)' },
         { value: 'forceatlas2_clusters', label: 'ForceAtlas2 (Clusters)' },
+    ];
+
+    const backboneMethodOptions = [
+        { value: 'high_salience_skeleton', label: 'High Salience Skeleton' },
+        { value: 'lans', label: 'LANS' },
     ];
 
     const filterIcon = (
@@ -92,6 +99,8 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
                 vertexSize,
                 graphLayout,
                 communityAlgorithm,
+                backboneEnabled,
+                backboneMethod,
             });
         }
     };
@@ -155,6 +164,7 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
                         valueMax={coautoria.max}
                         onChange={setCoautoria}
                         formatLabel={(val) => String(val)}
+                        disabled={backboneEnabled}
                     />
                 ) : (
                     <RangeSlider
@@ -164,6 +174,7 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
                         valueMin={voteSimilarity.min}
                         valueMax={voteSimilarity.max}
                         onChange={setVoteSimilarity}
+                        disabled={backboneEnabled}
                     />
                 )}
             </div>
@@ -205,6 +216,21 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
                         disabled={separateBy !== 'comunidade'}
                         style={{ flexDirection: 'column', alignItems: 'flex-start', gap: SPACING.sm }}
                     />
+                    <div style={{ height: SPACING.md }} />
+                    <Checkbox
+                        label="Backbone"
+                        checked={backboneEnabled}
+                        onChange={setBackboneEnabled}
+                    />
+                    <div style={{ height: SPACING.sm }} />
+                    <Dropdown
+                        label="Método do backbone"
+                        options={backboneMethodOptions}
+                        value={backboneMethod}
+                        onChange={(e) => setBackboneMethod(e.target.value)}
+                        disabled={!backboneEnabled}
+                        style={{ flexDirection: 'column', alignItems: 'flex-start', gap: SPACING.sm }}
+                    />
                 </PanelSection>
             </div>
 
@@ -220,3 +246,4 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
         </Frame>
     );
 }
+

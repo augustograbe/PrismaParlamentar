@@ -2,9 +2,9 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from deputados.models import Deputado
-from grafos.models import GrafoAresta
+from grafos.models import GrafoAresta, BackboneAresta
 from analises.services import calcular_comunidades_coautoria, calcular_comunidades_votos
-from .serializers import DeputadoSerializer, GrafoArestaSerializer
+from .serializers import DeputadoSerializer, GrafoArestaSerializer, BackboneArestaSerializer
 
 
 class DeputadoViewSet(viewsets.ReadOnlyModelViewSet):
@@ -110,3 +110,29 @@ class ComunidadesCoautoriaView(APIView):
             return Response({'detail': str(exc)}, status=400)
 
         return Response(resultado)
+
+
+class BackboneArestaViewSet(viewsets.ReadOnlyModelViewSet):
+    """Endpoint para arestas de backbone pré-calculadas."""
+    queryset = BackboneAresta.objects.all()
+    serializer_class = BackboneArestaSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        # Filtro obrigatório: método do backbone
+        metodo = self.request.query_params.get('metodo', None)
+        if metodo:
+            queryset = queryset.filter(metodo=metodo)
+
+        # Filtro obrigatório: tipo de grafo
+        tipo_grafo = self.request.query_params.get('tipo_grafo', None)
+        if tipo_grafo:
+            queryset = queryset.filter(tipo_grafo=tipo_grafo)
+
+        # Filtro opcional: legislatura
+        legislatura = self.request.query_params.get('legislatura', None)
+        if legislatura:
+            queryset = queryset.filter(legislatura=int(legislatura))
+
+        return queryset

@@ -1,15 +1,23 @@
 from rest_framework import viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from deputados.models import Deputado
 from grafos.models import GrafoAresta, BackboneAresta
 from analises.services import calcular_comunidades_coautoria, calcular_comunidades_votos
-from .serializers import DeputadoSerializer, GrafoArestaSerializer, BackboneArestaSerializer
+from .serializers import DeputadoSerializer, GrafoArestaSerializer, BackboneArestaSerializer, AtividadeDiariaSerializer
 
 
 class DeputadoViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Deputado.objects.all()
     serializer_class = DeputadoSerializer
+
+    @action(detail=True, methods=['get'])
+    def atividades(self, request, pk=None):
+        deputado = self.get_object()
+        atividades = deputado.atividades_diarias.all().order_by('data')
+        serializer = AtividadeDiariaSerializer(atividades, many=True)
+        return Response(serializer.data)
 
 
 class GrafoArestaViewSet(viewsets.ReadOnlyModelViewSet):

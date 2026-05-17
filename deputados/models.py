@@ -103,3 +103,27 @@ class ProposicaoAutor(models.Model):
 
     def __str__(self):
         return f'{self.deputado.nome} -> {self.proposicao}'
+
+class PresencaEvento(models.Model):
+    id_evento = models.IntegerField()
+    deputado = models.ForeignKey(Deputado, on_delete=models.CASCADE, related_name='presencas_eventos')
+    data_presenca = models.DateField(null=True, blank=True)
+    tipo_participacao = models.CharField(max_length=100, null=True, blank=True)
+    status_presenca = models.CharField(max_length=100, null=True, blank=True)
+
+    class Meta:
+        unique_together = ('id_evento', 'deputado')
+        verbose_name_plural = 'Presenças em Eventos'
+
+    def __str__(self):
+        return f'{self.deputado.nome} presente no evento {self.id_evento} em {self.data_presenca}'
+
+class Discurso(models.Model):
+    deputado = models.ForeignKey(Deputado, on_delete=models.CASCADE, related_name='discursos')
+    data_hora_inicio = models.DateTimeField(null=True, blank=True)
+    tipo_evento = models.CharField(max_length=100, null=True, blank=True)
+    fase_evento = models.CharField(max_length=100, null=True, blank=True)
+    transcricao = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return f'Discurso de {self.deputado.nome} em {self.data_hora_inicio}'

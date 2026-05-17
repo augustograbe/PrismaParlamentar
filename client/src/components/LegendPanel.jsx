@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Frame from './Frame';
+import Tooltip from './Tooltip';
 import { COLORS, SPACING, FONTS } from '../constants/theme';
 
 /**
@@ -73,6 +74,7 @@ export default function LegendPanel({ legendData = [], totalVisible = 0, onHover
             title={
                 <span style={{ display: 'flex', alignItems: 'center', gap: SPACING.sm }}>
                     {legendIcon} Legenda ({totalVisible})
+                    <Tooltip text="O número no título representa o total de deputados visíveis no grafo. Os números abaixo mostram a quantidade por grupo e a porcentagem correspondente." />
                 </span>
             }
             showMinimize={true}

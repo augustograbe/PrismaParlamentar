@@ -41,22 +41,54 @@ Para rodar o projeto localmente, você precisará instalar em sua máquina:
    ```   
 Abra o navegador no endereço do Frontend apontado no terminal.
 
-## Popular o Banco de Dados com a API da Câmara
+## Popular o Banco de Dados e Gerar Grafos
 
-Para baixar os dados reais dos deputados e votações da Câmara dos Deputados da Legislatura atual (57), execute os scripts abaixo na raiz do projeto:
+Para baixar os dados reais e gerar as estruturas de grafos e análises, execute os comandos abaixo na raiz do projeto:
 
-1. **Baixar os dados (Deputados, Órgãos, Votações e Votos)**:
-   ```bash
-   python manage.py coletar_api_camara
-   ```
-   *Nota: Esse script pode demorar alguns minutos pois faz múltiplas requisições à API pública da Câmara.*
+### 1. Coleta de Dados
 
-2. **Gerar o Grafo de Similaridade de Votos**:
-   ```bash
-   python manage.py gerar_grafo_similaridade
-   ```
-   
-3. **Gerar as Análises**:
-   ```bash
-   python manage.py gerar_analises --legislatura 57
-   ```
+Os dados são coletados da API pública da Câmara dos Deputados.
+
+- **Coleta Principal** (Deputados, Partidos, Órgãos, Votações, Votos e Proposições):
+  ```bash
+  python manage.py coletar_api_camara
+  ```
+  *Nota: Esse script pode demorar alguns minutos pois faz múltiplas requisições.*
+
+- **Coleta de Presenças**:
+  ```bash
+  python manage.py coletar_presencas
+  ```
+
+- **Coleta de Discursos**:
+  ```bash
+  python manage.py coletar_discursos
+  ```
+
+### 2. Geração de Grafos
+
+Após coletar os dados, você pode gerar os grafos de conexões entre os deputados.
+
+- **Grafo de Similaridade de Votos**:
+  ```bash
+  python manage.py gerar_grafo_similaridade
+  ```
+
+- **Grafo de Coautoria**:
+  ```bash
+  python manage.py gerar_grafo_coautoria
+  ```
+
+- **Gerar Backbones** (Estruturas simplificadas dos grafos para otimização):
+  ```bash
+  python manage.py gerar_backbones
+  ```
+
+### 3. Geração de Análises
+
+Para gerar métricas, comunidades e estatísticas sobre os dados coletados:
+
+```bash
+python manage.py gerar_analises --legislatura 57
+```
+

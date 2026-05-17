@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from deputados.models import Deputado, Orgao, Proposicao, Votacao
 from grafos.models import GrafoAresta, BackboneAresta
-from analises.models import DeputadoAnalise
+from analises.models import DeputadoAnalise, AtividadeDiaria
 
 
 class DeputadoSerializer(serializers.ModelSerializer):
@@ -38,3 +38,8 @@ class BackboneArestaSerializer(serializers.ModelSerializer):
     class Meta:
         model = BackboneAresta
         fields = '__all__'
+
+class AtividadeDiariaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AtividadeDiaria
+        fields = ['data', 'pontuacao', 'intensidade', 'detalhes']

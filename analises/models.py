@@ -18,3 +18,20 @@ class DeputadoAnalise(models.Model):
 
     def __str__(self):
         return f'{self.deputado.nome} | Leg {self.legislatura}: {self.presenca_percentual}%'
+
+class AtividadeDiaria(models.Model):
+    deputado = models.ForeignKey(Deputado, on_delete=models.CASCADE, related_name='atividades_diarias')
+    data = models.DateField()
+    pontuacao = models.FloatField(default=0.0)
+    intensidade = models.IntegerField(default=0, help_text='Quartil de intensidade (0 a 4)')
+    detalhes = models.JSONField(default=dict, help_text='Dicionario com contagem e descricao das acoes no dia')
+
+    class Meta:
+        db_table = 'atividade_diaria'
+        unique_together = ('deputado', 'data')
+        ordering = ['-data']
+        verbose_name = 'Atividade Diaria'
+        verbose_name_plural = 'Atividades Diarias'
+
+    def __str__(self):
+        return f'{self.deputado.nome} - {self.data}: Int {self.intensidade}'

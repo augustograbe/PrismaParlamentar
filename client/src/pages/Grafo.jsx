@@ -8,6 +8,7 @@ import PinnedPanel from '../components/PinnedPanel';
 import LegendPanel from '../components/LegendPanel';
 import GraphContainer from '../components/graph/GraphContainer';
 import Frame from '../components/Frame';
+import Tooltip from '../components/Tooltip';
 import { COLORS, SPACING, FONTS, PARTY_COLORS, STATE_COLORS, SEX_COLORS } from '../constants/theme';
 
 const PINNED_STORAGE_KEY = 'prisma_politico_pinned';
@@ -317,6 +318,7 @@ export default function Grafo() {
                     title={
                         <span style={{ display: 'flex', alignItems: 'center', gap: SPACING.sm }}>
                             {graphIcon} Selecionar grafo
+                            <Tooltip text="Similaridade conecta deputados com votos parecidos; Coautoria conecta deputados que propuseram leis juntos." />
                         </span>
                     }
                 >

@@ -5,6 +5,7 @@ import Checkbox from './Checkbox';
 import RangeSlider from './RangeSlider';
 import Button from './Button';
 import PanelSection from './PanelSection';
+import Tooltip from './Tooltip';
 import { COLORS, SPACING } from '../constants/theme';
 
 /**
@@ -122,32 +123,53 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
         >
             <div style={contentStyle}>
                 <Dropdown
-                    label="Separar por"
+                    label={
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            Separar por <Tooltip text="Altera as cores dos vértices para representar partidos, estados, sexo ou comunidades detectadas." />
+                        </span>
+                    }
                     options={separateOptions}
                     value={separateBy}
                     onChange={(e) => setSeparateBy(e.target.value)}
+                    style={{ flexDirection: 'column', alignItems: 'flex-start', gap: SPACING.sm }}
                 />
 
                 <Checkbox
-                    label="Apenas em exercício"
+                    label={
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            Apenas em exercício <Tooltip text="Oculta deputados que não estão atualmente em exercício (ex: suplentes não convocados)." />
+                        </span>
+                    }
                     checked={onlyActive}
                     onChange={setOnlyActive}
                 />
 
                 <Checkbox
-                    label="Destacar Fixados"
+                    label={
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            Destacar Fixados <Tooltip text="Mantém os deputados fixados 100% visíveis, escurecendo os demais para facilitar a visualização." />
+                        </span>
+                    }
                     checked={highlightPinned}
                     onChange={setHighlightPinned}
                 />
 
                 <Checkbox
-                    label="Apenas com conexões"
+                    label={
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            Apenas com conexões <Tooltip text="Remove do grafo os deputados que não possuem nenhuma ligação, mostrando apenas a rede conectada." />
+                        </span>
+                    }
                     checked={onlyWithConnections}
                     onChange={setOnlyWithConnections}
                 />
 
                 <RangeSlider
-                    label="Presença"
+                    label={
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            Presença <Tooltip text="Filtra os deputados pelo percentual de presença nas sessões (ex: 80% a 100%)." />
+                        </span>
+                    }
                     min={0}
                     max={100}
                     valueMin={presence.min}
@@ -157,7 +179,11 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
 
                 {graphType === 'coautoria' ? (
                     <RangeSlider
-                        label="Coautorias"
+                        label={
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                Coautorias <Tooltip text="Define a quantidade mínima e máxima de projetos em comum para exibir a conexão." />
+                            </span>
+                        }
                         min={1}
                         max={maxCoautoriaLimit}
                         valueMin={coautoria.min}
@@ -168,7 +194,11 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
                     />
                 ) : (
                     <RangeSlider
-                        label="Similaridade dos votos"
+                        label={
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                Similaridade dos votos <Tooltip text="Define o percentual mínimo e máximo de concordância em votos para exibir a conexão." />
+                            </span>
+                        }
                         min={80}
                         max={100}
                         valueMin={voteSimilarity.min}
@@ -186,7 +216,11 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
                 defaultExpanded={true}
             >
                 <Dropdown
-                    label="Layout do grafo"
+                    label={
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            Layout do grafo <Tooltip text="Define como os vértices se organizam fisicamente no espaço (ex: espalhado ou em clusters)." />
+                        </span>
+                    }
                     options={layoutOptions}
                     value={graphLayout}
                     onChange={(e) => setGraphLayout(e.target.value)}
@@ -194,7 +228,11 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
                 />
                 <div style={{ height: SPACING.sm }} />
                 <Dropdown
-                    label="Tamanho do vértice"
+                    label={
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            Tamanho do vértice <Tooltip text="Altera o tamanho da bolinha com base em métricas como presença ou quantidade de conexões." />
+                        </span>
+                    }
                     options={vertexSizeOptions}
                     value={vertexSize}
                     onChange={(e) => setVertexSize(e.target.value)}
@@ -209,7 +247,11 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
                     defaultExpanded={false}
                 >
                     <Dropdown
-                        label="Algoritmo de comunidades"
+                        label={
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                Algoritmo de comunidades <Tooltip text="Escolhe o método matemático (Louvain ou Leiden) para agrupar deputados com conexões mais fortes entre si." />
+                            </span>
+                        }
                         options={communityAlgorithmOptions}
                         value={communityAlgorithm}
                         onChange={(e) => setCommunityAlgorithm(e.target.value)}
@@ -218,13 +260,21 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
                     />
                     <div style={{ height: SPACING.md }} />
                     <Checkbox
-                        label="Backbone"
+                        label={
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                Backbone <Tooltip text="Aplica um filtro estrutural avançado que destaca a espinha dorsal do grafo, desativando o filtro por peso de aresta." />
+                            </span>
+                        }
                         checked={backboneEnabled}
                         onChange={setBackboneEnabled}
                     />
                     <div style={{ height: SPACING.sm }} />
                     <Dropdown
-                        label="Método do backbone"
+                        label={
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                Método do backbone <Tooltip text="Escolhe entre algoritmos (High Salience Skeleton ou LANS) para extrair as ligações mais significativas." />
+                            </span>
+                        }
                         options={backboneMethodOptions}
                         value={backboneMethod}
                         onChange={(e) => setBackboneMethod(e.target.value)}

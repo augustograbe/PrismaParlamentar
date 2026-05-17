@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Frame from './Frame';
 import { COLORS, SPACING, FONTS, SHADOWS } from '../constants/theme';
+import ActivityCalendar from './ActivityCalendar';
 
 /**
  * DeputyProfile - Painel de perfil expandido do deputado
@@ -50,7 +51,7 @@ export default function DeputyProfile({ deputy = null, visible = false, onClose 
 
     // Profile card container
     const profileStyle = {
-        width: '860px',
+        width: '1000px',
         maxWidth: 'calc(100vw - 64px)',
         maxHeight: `calc(100vh - 52px - ${SPACING.frameGap} - ${SPACING.frameGap} - ${SPACING.frameGap} - ${SPACING.frameGap})`,
         backgroundColor: COLORS.frameBg,
@@ -292,11 +293,16 @@ export default function DeputyProfile({ deputy = null, visible = false, onClose 
                         </div>
                     </div>
 
-                    {/* Tab content — empty for now */}
+                    {/* Tab content */}
                     <div style={tabContentStyle}>
-                        <div style={emptyTabStyle}>
-                            {/* Placeholder for future content */}
-                        </div>
+                        {activeTab === 'atividade' ? (
+                            <ActivityCalendar deputyId={deputy.id} />
+                        ) : (
+                            <div style={emptyTabStyle}>
+                                {/* Placeholder for future content */}
+                                <p>Conteúdo de {activeTab} em breve.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

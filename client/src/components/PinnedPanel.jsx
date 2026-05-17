@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Frame from './Frame';
+import Tooltip from './Tooltip';
 import { COLORS, SPACING, FONTS } from '../constants/theme';
 import { Pin } from 'lucide-react';
 
@@ -73,6 +74,7 @@ export default function PinnedPanel({ pinnedDeputies = [], onRemove, onSelect, i
             title={
                 <span style={{ display: 'flex', alignItems: 'center', gap: SPACING.sm }}>
                     {pinIcon} Fixados ({pinnedDeputies.length})
+                    <Tooltip text="Para fixar um deputado, clique em seu vértice no grafo e depois no ícone de alfinete (Pin) no card." />
                 </span>
             }
             showMinimize={true}

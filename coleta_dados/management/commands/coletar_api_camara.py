@@ -313,4 +313,7 @@ class Command(BaseCommand):
             if autores_objs:
                 ProposicaoAutor.objects.bulk_create(autores_objs, ignore_conflicts=True)
 
+        # Os pontos 6 (Presenças) e 7 (Discursos) foram movidos para scripts separados.
+
+
         self.stdout.write(self.style.SUCCESS("\nProcesso concluído com sucesso!"))

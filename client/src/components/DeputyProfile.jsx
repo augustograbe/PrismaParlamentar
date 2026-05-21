@@ -3,6 +3,7 @@ import Frame from './Frame';
 import { COLORS, SPACING, FONTS, SHADOWS } from '../constants/theme';
 import ActivityCalendar from './ActivityCalendar';
 import DeputyStats from './DeputyStats';
+import DeputyExpenses from './DeputyExpenses';
 
 /**
  * DeputyProfile - Painel de perfil expandido do deputado
@@ -299,6 +300,8 @@ export default function DeputyProfile({ deputy = null, visible = false, onClose 
                                 <DeputyStats deputyId={deputy.id} />
                                 <ActivityCalendar deputyId={deputy.id} />
                             </>
+                        ) : activeTab === 'gastos' ? (
+                            <DeputyExpenses deputyId={deputy.id} />
                         ) : (
                             <div style={emptyTabStyle}>
                                 {/* Placeholder for future content */}

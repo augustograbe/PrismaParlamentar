@@ -52,6 +52,85 @@ class DeputadoViewSet(viewsets.ReadOnlyModelViewSet):
             'tipos_proposicao': tipos_proposicao
         })
 
+    @action(detail=True, methods=['get'])
+    def despesas(self, request, pk=None):
+        deputado = self.get_object()
+        
+        from datetime import datetime
+        ano_corrente = datetime.now().year
+        try:
+            selected_year = int(request.query_params.get('ano', ano_corrente))
+        except ValueError:
+            selected_year = ano_corrente
+            
+        despesas_ano = deputado.despesas.filter(ano=selected_year)
+        
+        from django.db import models
+        total_gasto_ano = despesas_ano.aggregate(total=models.Sum('valor_liquido'))['total'] or 0.0
+        total_gasto_ano = float(total_gasto_ano)
+        
+        # Limite da cota CEAP por estado reajustado
+        LIMITS_BY_STATE = {
+            'AC': 57359.87, 'AL': 53164.36, 'AM': 56151.46, 'AP': 55929.26,
+            'BA': 50965.29, 'CE': 54879.34, 'DF': 41612.55, 'ES': 49160.15,
+            'GO': 46979.73, 'MA': 54537.99, 'MG': 47645.91, 'MS': 52707.93,
+            'MT': 51439.83, 'PA': 54624.17, 'PB': 54402.48, 'PE': 53997.81,
+            'PI': 53195.84, 'PR': 50807.19, 'RJ': 47267.41, 'RN': 55198.09,
+            'RO': 56267.90, 'RR': 58474.70, 'RS': 53086.78, 'SC': 51951.42,
+            'SE': 52248.86, 'SP': 48727.46, 'TO': 51525.80
+        }
+        
+        uf = deputado.sigla_uf or 'SP'
+        limite_mensal = LIMITS_BY_STATE.get(uf.upper(), 50000.00)
+        limite_anual = limite_mensal * 12
+        percentual_gasto_ano = (total_gasto_ano / limite_anual) * 100 if limite_anual > 0 else 0
+        
+        gastos_mensais_raw = despesas_ano.values('mes').annotate(total=models.Sum('valor_liquido')).order_by('mes')
+        gastos_mensais_map = {item['mes']: float(item['total']) for item in gastos_mensais_raw}
+        
+        detalhes_mensais_raw = despesas_ano.values('mes', 'tipo_despesa').annotate(total=models.Sum('valor_liquido')).order_by('mes', '-total')
+        detalhes_ano_raw = despesas_ano.values('tipo_despesa').annotate(total=models.Sum('valor_liquido')).order_by('-total')
+        
+        detalhes_ano = []
+        for item in detalhes_ano_raw:
+            val = float(item['total'])
+            detalhes_ano.append({
+                'tipo': item['tipo_despesa'],
+                'valor': val,
+                'percentual': (val / total_gasto_ano) * 100 if total_gasto_ano > 0 else 0
+            })
+            
+        gastos_por_mes = []
+        for m in range(1, 13):
+            total_mes = gastos_mensais_map.get(m, 0.0)
+            
+            detalhes_mes = []
+            for item in detalhes_mensais_raw:
+                if item['mes'] == m:
+                    val = float(item['total'])
+                    detalhes_mes.append({
+                        'tipo': item['tipo_despesa'],
+                        'valor': val,
+                        'percentual': (val / total_mes) * 100 if total_mes > 0 else 0
+                    })
+                    
+            gastos_por_mes.append({
+                'mes': m,
+                'total': total_mes,
+                'percentual_limite': (total_mes / limite_mensal) * 100 if limite_mensal > 0 else 0,
+                'detalhes': detalhes_mes
+            })
+            
+        return Response({
+            'ano': selected_year,
+            'limite_mensal': limite_mensal,
+            'limite_anual': limite_anual,
+            'total_gasto_ano': total_gasto_ano,
+            'percentual_gasto_ano': percentual_gasto_ano,
+            'gastos_por_mes': gastos_por_mes,
+            'detalhes_ano': detalhes_ano
+        })
+
 
 class GrafoArestaViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = GrafoAresta.objects.all()

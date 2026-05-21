@@ -128,3 +128,33 @@ class Discurso(models.Model):
 
     def __str__(self):
         return f'Discurso de {self.deputado.nome} em {self.data_hora_inicio}'
+
+class Despesa(models.Model):
+    deputado = models.ForeignKey(Deputado, on_delete=models.CASCADE, related_name='despesas')
+    ano = models.IntegerField()
+    mes = models.IntegerField()
+    tipo_despesa = models.CharField(max_length=200)
+    cod_documento = models.CharField(max_length=100, null=True, blank=True)
+    cod_lote = models.IntegerField(null=True, blank=True)
+    cod_tipo_documento = models.IntegerField(null=True, blank=True)
+    data_documento = models.DateField(null=True, blank=True)
+    nome_fornecedor = models.CharField(max_length=500, null=True, blank=True)
+    cnpj_cpf_fornecedor = models.CharField(max_length=20, null=True, blank=True)
+    num_documento = models.CharField(max_length=100, null=True, blank=True)
+    num_ressarcimento = models.CharField(max_length=100, null=True, blank=True)
+    parcela = models.IntegerField(null=True, blank=True)
+    tipo_documento = models.CharField(max_length=100, null=True, blank=True)
+    url_documento = models.URLField(max_length=1000, null=True, blank=True)
+    valor_documento = models.DecimalField(max_digits=12, decimal_places=2)
+    valor_glosa = models.DecimalField(max_digits=12, decimal_places=2)
+    valor_liquido = models.DecimalField(max_digits=12, decimal_places=2)
+
+    class Meta:
+        verbose_name = 'Despesa'
+        verbose_name_plural = 'Despesas'
+        indexes = [
+            models.Index(fields=['deputado', 'ano', 'mes']),
+        ]
+
+    def __str__(self):
+        return f'{self.deputado.nome} - {self.tipo_despesa} ({self.mes}/{self.ano}) - R$ {self.valor_liquido}'

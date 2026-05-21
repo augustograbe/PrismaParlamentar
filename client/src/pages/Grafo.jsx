@@ -8,6 +8,7 @@ import PinnedPanel from '../components/PinnedPanel';
 import LegendPanel from '../components/LegendPanel';
 import GraphContainer from '../components/graph/GraphContainer';
 import Frame from '../components/Frame';
+import Tooltip from '../components/Tooltip';
 import { COLORS, SPACING, FONTS, PARTY_COLORS, STATE_COLORS, SEX_COLORS } from '../constants/theme';
 
 const PINNED_STORAGE_KEY = 'prisma_politico_pinned';
@@ -54,6 +55,11 @@ function getGroupLabel(key, separateBy) {
     if (separateBy === 'sexo') {
         return SEX_LABELS[key] || key;
     }
+    if (separateBy === 'comunidade') {
+        if (key === 'sem_comunidade') return 'Sem Comunidade';
+        const num = parseInt(key, 10);
+        if (!isNaN(num)) return `Comunidade ${num + 1}`;
+    }
     return key;
 }
 
@@ -85,6 +91,8 @@ export default function Grafo() {
         coautoria: { min: 1, max: 50 },
         vertexSize: 'padrao',
         graphLayout: 'forceatlas2_clusters',
+        backboneEnabled: false,
+        backboneMethod: 'high_salience_skeleton',
     });
 
     // Persist pinned list to localStorage whenever it changes
@@ -148,11 +156,11 @@ export default function Grafo() {
     }, []);
 
     // Handle visible stats from GraphContainer for the legend
-    const handleVisibleStatsChanged = useCallback(({ separateBy, groupCounts, totalVisible: total }) => {
+    const handleVisibleStatsChanged = useCallback(({ separateBy, groupCounts, groupColors = {}, totalVisible: total }) => {
         const data = Object.entries(groupCounts).map(([key, count]) => ({
             key,
             label: getGroupLabel(key, separateBy),
-            color: getGroupColor(key, separateBy),
+            color: groupColors[key] || getGroupColor(key, separateBy),
             count,
         }));
         setLegendData(data);
@@ -272,6 +280,7 @@ export default function Grafo() {
                 onPin={handleTogglePin}
                 onProfile={handleOpenProfile}
                 separateBy={filters.separateBy}
+                communityAlgorithm={filters.communityAlgorithm || 'louvain'}
                 graphType={graphType}
                 onBarSegmentHover={setHoveredBarGroup}
                 onConnectionHover={setHoveredConnectionNode}
@@ -309,6 +318,7 @@ export default function Grafo() {
                     title={
                         <span style={{ display: 'flex', alignItems: 'center', gap: SPACING.sm }}>
                             {graphIcon} Selecionar grafo
+                            <Tooltip text="Similaridade conecta deputados com votos parecidos; Coautoria conecta deputados que propuseram leis juntos." />
                         </span>
                     }
                 >

@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import Frame from './Frame';
 import { COLORS, SPACING, FONTS, SHADOWS } from '../constants/theme';
+import ActivityCalendar from './ActivityCalendar';
+import DeputyStats from './DeputyStats';
+import DeputyExpenses from './DeputyExpenses';
 
 /**
  * DeputyProfile - Painel de perfil expandido do deputado
@@ -30,8 +33,6 @@ export default function DeputyProfile({ deputy = null, visible = false, onClose 
     const HEADER_HEIGHT = 40;
     const PHOTO_OVERLAP = 30;
 
-    // TopBar: top=16px, height=52px → bottom at 68px, plus gap
-    const topBarBottom = `calc(52px + ${SPACING.frameGap} + ${SPACING.frameGap})`;
 
     // Overlay — covers entire page, but keeps profile below topbar via padding
     const overlayStyle = {
@@ -50,7 +51,7 @@ export default function DeputyProfile({ deputy = null, visible = false, onClose 
 
     // Profile card container
     const profileStyle = {
-        width: '860px',
+        width: '1000px',
         maxWidth: 'calc(100vw - 64px)',
         maxHeight: `calc(100vh - 52px - ${SPACING.frameGap} - ${SPACING.frameGap} - ${SPACING.frameGap} - ${SPACING.frameGap})`,
         backgroundColor: COLORS.frameBg,
@@ -292,11 +293,21 @@ export default function DeputyProfile({ deputy = null, visible = false, onClose 
                         </div>
                     </div>
 
-                    {/* Tab content — empty for now */}
+                    {/* Tab content */}
                     <div style={tabContentStyle}>
-                        <div style={emptyTabStyle}>
-                            {/* Placeholder for future content */}
-                        </div>
+                        {activeTab === 'atividade' ? (
+                            <>
+                                <DeputyStats deputyId={deputy.id} />
+                                <ActivityCalendar deputyId={deputy.id} />
+                            </>
+                        ) : activeTab === 'gastos' ? (
+                            <DeputyExpenses deputyId={deputy.id} />
+                        ) : (
+                            <div style={emptyTabStyle}>
+                                {/* Placeholder for future content */}
+                                <p>Conteúdo de {activeTab} em breve.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

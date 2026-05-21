@@ -3,6 +3,7 @@ import Frame from './Frame';
 import Checkbox from './Checkbox';
 import RangeSlider from './RangeSlider';
 import Button from './Button';
+import Tooltip from './Tooltip';
 import { COLORS, SPACING } from '../constants/theme';
 
 /**
@@ -44,13 +45,21 @@ export default function ListFiltersPanel({ onApply, isMinimized, onToggleMinimiz
         >
             <div style={{ padding: SPACING.lg, display: 'flex', flexDirection: 'column', gap: SPACING.lg }}>
                 <Checkbox
-                    label="Apenas em exercício"
+                    label={
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            Apenas em exercício <Tooltip text="Oculta deputados que não estão atualmente em exercício (ex: suplentes não convocados)." />
+                        </span>
+                    }
                     checked={onlyActive}
                     onChange={setOnlyActive}
                 />
 
                 <RangeSlider
-                    label="Presença"
+                    label={
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            Presença <Tooltip text="Filtra os deputados pelo percentual de presença nas sessões (ex: 80% a 100%)." />
+                        </span>
+                    }
                     min={0}
                     max={100}
                     valueMin={presence.min}

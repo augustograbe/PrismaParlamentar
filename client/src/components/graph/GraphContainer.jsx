@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { SigmaContainer } from '@react-sigma/core';
 import Graph from 'graphology';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
-import { circular, random } from 'graphology-layout';
+import { random } from 'graphology-layout';
 import noverlap from 'graphology-layout-noverlap';
 import '@react-sigma/core/lib/style.css';
 
@@ -11,10 +11,92 @@ import GraphEventsController from './GraphEventsController';
 import GraphSettingsController from './GraphSettingsController';
 
 /**
+ * Retorna o ID da comunidade do deputado baseado no algoritmo e tipo de grafo.
+ */
+function getCommunityId(deputy, graphType, dynamicCommunityMap = null) {
+    if (!deputy) return null;
+    const depId = String(deputy.id);
+    if (dynamicCommunityMap && Object.prototype.hasOwnProperty.call(dynamicCommunityMap, depId)) {
+        return dynamicCommunityMap[depId];
+    }
+    return null;
+}
+
+function getCommunityCacheKey(graphType, filters) {
+    const algorithm = filters?.communityAlgorithm || 'louvain';
+    if (graphType === 'coautoria') {
+        const coautoria = filters?.coautoria || { min: 1, max: 999 };
+        return `${graphType}-${coautoria.min}-${coautoria.max}-${algorithm}`;
+    }
+    const voteSimilarity = filters?.voteSimilarity || { min: 80, max: 100 };
+    return `${graphType}-${voteSimilarity.min}-${voteSimilarity.max}-${algorithm}`;
+}
+
+function getCommunityRequest(graphType, filters) {
+    const algorithm = filters?.communityAlgorithm || 'louvain';
+    if (graphType === 'coautoria') {
+        const coautoria = filters?.coautoria || { min: 1, max: 999 };
+        return {
+            endpoint: 'http://localhost:8000/api/comunidades-coautoria/',
+            params: {
+                legislatura: '57',
+                min_coautoria: String(coautoria.min),
+                max_coautoria: String(coautoria.max),
+                algoritmo: algorithm,
+            },
+        };
+    }
+
+    const voteSimilarity = filters?.voteSimilarity || { min: 80, max: 100 };
+    return {
+        endpoint: 'http://localhost:8000/api/comunidades-votos/',
+        params: {
+            legislatura: '57',
+            min_similaridade: String(voteSimilarity.min),
+            max_similaridade: String(voteSimilarity.max),
+            algoritmo: algorithm,
+        },
+    };
+}
+
+function getPartyKey(deputy) {
+    return deputy?.sigla_partido || deputy?.partido || 'OUTROS';
+}
+
+function getCommunityColorMap(graph, graphType, dynamicCommunityMap = null) {
+    if (!dynamicCommunityMap) {
+        return {};
+    }
+
+    const partyCountsByCommunity = {};
+    graph.forEachNode((nodeId) => {
+        const dep = graph.getNodeAttribute(nodeId, 'deputyData');
+        const cId = getCommunityId(dep, graphType, dynamicCommunityMap);
+        if (cId == null) return;
+
+        const communityKey = String(cId);
+        const partyKey = getPartyKey(dep);
+        if (!partyCountsByCommunity[communityKey]) {
+            partyCountsByCommunity[communityKey] = {};
+        }
+        partyCountsByCommunity[communityKey][partyKey] = (partyCountsByCommunity[communityKey][partyKey] || 0) + 1;
+    });
+
+    const communityColorMap = {};
+    Object.entries(partyCountsByCommunity).forEach(([communityKey, partyCounts]) => {
+        const dominantParty = Object.entries(partyCounts)
+            .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0];
+        communityColorMap[communityKey] = PARTY_COLORS[dominantParty] || COLORS.textMedium;
+    });
+
+    return communityColorMap;
+}
+
+/**
  * Retorna a cor de um deputado baseado no critério de separação
  */
-function getNodeColor(deputy, separateBy) {
-    const partido = deputy.sigla_partido || deputy.partido;
+function getNodeColor(deputy, separateBy, graphType, dynamicCommunityMap = null, communityColorMap = {}) {
+    const partido = getPartyKey(deputy);
     const estado = deputy.sigla_uf || deputy.estado;
     const sexo = deputy.sexo;
 
@@ -25,6 +107,11 @@ function getNodeColor(deputy, separateBy) {
             return STATE_COLORS[estado] || COLORS.textMedium;
         case 'sexo':
             return SEX_COLORS[sexo] || COLORS.textMedium;
+        case 'comunidade': {
+            const cId = getCommunityId(deputy, graphType, dynamicCommunityMap);
+            if (cId == null) return COLORS.textMedium;
+            return communityColorMap[String(cId)] || COLORS.textMedium;
+        }
         default:
             return PARTY_COLORS[partido] || COLORS.textMedium;
     }
@@ -47,6 +134,9 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
     const [isComputing, setIsComputing] = useState(true);
     const [progress, setProgress] = useState(0);
     const computeIdRef = useRef(0);
+    const communityCacheRef = useRef({});
+    const [dynamicCommunities, setDynamicCommunities] = useState(null);
+    const lastBackboneKeyRef = useRef(null); // tracks backbone state to detect changes
 
     // Inicializar o grafo uma vez buscando deputados da API
     useEffect(() => {
@@ -85,7 +175,7 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
     }, [graph, onDeputiesLoaded]);
 
     // Carregar arestas quando o tipo de grafo muda
-    const loadEdges = useCallback(async (type) => {
+    const loadEdges = useCallback(async (type, backboneConfig = null) => {
         if (graph.order === 0) return;
 
         // Mostrar loading imediatamente
@@ -95,9 +185,18 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
         // Remover todas as arestas atuais
         graph.clearEdges();
 
-        const edgeUrl = type === 'coautoria'
-            ? 'http://localhost:8000/api/arestas-coautoria/'
-            : 'http://localhost:8000/api/arestas/';
+        let edgeUrl;
+        if (backboneConfig && backboneConfig.enabled) {
+            const params = new URLSearchParams({
+                metodo: backboneConfig.method,
+                tipo_grafo: type === 'coautoria' ? 'coautoria' : 'similaridade',
+            });
+            edgeUrl = `http://localhost:8000/api/arestas-backbone/?${params.toString()}`;
+        } else {
+            edgeUrl = type === 'coautoria'
+                ? 'http://localhost:8000/api/arestas-coautoria/'
+                : 'http://localhost:8000/api/arestas/';
+        }
 
         try {
             const res = await fetch(edgeUrl);
@@ -106,11 +205,13 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
             let maxC = 0;
 
             arestas.forEach((sim) => {
-                const edgeId = `${sim.deputado_1}-${sim.deputado_2}`;
                 const n1 = String(sim.deputado_1);
                 const n2 = String(sim.deputado_2);
+                const edgeId = `${n1}-${n2}`;
                 
-                const cVal = Number(sim.coautoria || 0);
+                // For backbone edges, peso is the weight; for normal edges, use existing fields
+                const simVal = Number(sim.similaridade || sim.peso || 0);
+                const cVal = Number(sim.coautoria || sim.peso || 0);
                 if (cVal > maxC) maxC = cVal;
 
                 if (graph.hasNode(n1) && graph.hasNode(n2) && !graph.hasEdge(edgeId)) {
@@ -118,8 +219,8 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
                         id: edgeId,
                         size: 1,
                         color: COLORS.edgeDefault,
-                        similaridade: Number(sim.similaridade || 0),
-                        coautoria: cVal,
+                        similaridade: simVal,
+                        coautoria: type === 'coautoria' ? cVal : Number(sim.coautoria || 0),
                     });
                 }
             });
@@ -136,16 +237,68 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
         }
     }, [graph, onMaxCoautoriaLoaded]);
 
-    // Efeito: carregar arestas quando dados estiverem prontos ou graphType mudar
+    // Efeito: carregar arestas quando dados estiverem prontos, graphType mudar, ou backbone mudar
     useEffect(() => {
         if (!dataLoaded) return;
-        if (lastGraphTypeRef.current !== graphType) {
-            loadEdges(graphType);
+        const backboneEnabled = filters?.backboneEnabled || false;
+        const backboneMethod = filters?.backboneMethod || 'high_salience_skeleton';
+        const backboneKey = backboneEnabled ? `backbone-${backboneMethod}-${graphType}` : `normal-${graphType}`;
+
+        if (lastBackboneKeyRef.current !== backboneKey) {
+            lastBackboneKeyRef.current = backboneKey;
+            lastGraphTypeRef.current = graphType;
+            loadEdges(graphType, backboneEnabled ? { enabled: true, method: backboneMethod } : null);
         }
-    }, [dataLoaded, graphType, loadEdges]);
+    }, [dataLoaded, graphType, filters?.backboneEnabled, filters?.backboneMethod, loadEdges]);
+
+    useEffect(() => {
+        if (!dataLoaded || filters?.separateBy !== 'comunidade') {
+            setDynamicCommunities(null);
+            return;
+        }
+
+        const algorithm = filters.communityAlgorithm || 'louvain';
+        const cacheKey = getCommunityCacheKey(graphType, filters);
+
+        if (communityCacheRef.current[cacheKey]) {
+            setDynamicCommunities(communityCacheRef.current[cacheKey]);
+            return;
+        }
+
+        let isMounted = true;
+        const { endpoint, params } = getCommunityRequest(graphType, filters);
+        const query = new URLSearchParams(params);
+
+        async function loadCommunities() {
+            try {
+                const res = await fetch(`${endpoint}?${query.toString()}`);
+                if (!res.ok) {
+                    throw new Error(`Erro ${res.status} ao calcular comunidades`);
+                }
+                const data = await res.json();
+                const result = {
+                    key: cacheKey,
+                    algorithm,
+                    comunidades: data.comunidades || {},
+                };
+                communityCacheRef.current[cacheKey] = result;
+                if (isMounted) {
+                    setDynamicCommunities(result);
+                }
+            } catch (error) {
+                console.error("Erro ao carregar comunidades dinamicas:", error);
+                if (isMounted) {
+                    setDynamicCommunities(null);
+                }
+            }
+        }
+
+        loadCommunities();
+        return () => { isMounted = false; };
+    }, [dataLoaded, graphType, filters]);
 
     // Função para aplicar layout ao grafo com progresso
-    const applyLayout = useCallback((layoutType, forceRecalc = false) => {
+    const applyLayout = useCallback((layoutType) => {
         if (graph.order === 0) return;
 
         const myId = ++computeIdRef.current;
@@ -218,6 +371,11 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
         if (!filters || !dataLoaded) return;
 
         const { separateBy, onlyActive, onlyWithConnections, presence, voteSimilarity, vertexSize, graphLayout } = filters;
+        const communityKey = getCommunityCacheKey(graphType, filters);
+        const dynamicCommunityMap = dynamicCommunities?.key === communityKey
+            ? dynamicCommunities.comunidades
+            : null;
+        const communityColorMap = getCommunityColorMap(graph, graphType, dynamicCommunityMap);
 
         // Atualizar nós (cor e visibilidade)
         graph.forEachNode((nodeId) => {
@@ -225,7 +383,7 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
             if (!dep) return;
 
             // Cor baseada no critério de separação
-            const color = getNodeColor(dep, separateBy);
+            const color = getNodeColor(dep, separateBy, graphType, dynamicCommunityMap, communityColorMap);
             graph.setNodeAttribute(nodeId, 'color', color);
 
             // Visibilidade baseada nos filtros
@@ -251,7 +409,8 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
 
             let hidden = sourceHidden || targetHidden;
 
-            if (!hidden) {
+            // Quando backbone está ativo, não filtra por similaridade/coautoria
+            if (!hidden && !filters.backboneEnabled) {
                 if (graphType === 'coautoria') {
                     // Filtrar por coautorias
                     const coaut = attrs.coautoria || 0;
@@ -383,6 +542,7 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
         // Compute visible stats for legend
         if (onVisibleStatsChanged) {
             const groupCounts = {};
+            const groupColors = {};
             let totalVisible = 0;
             graph.forEachNode((nodeId) => {
                 if (graph.getNodeAttribute(nodeId, 'hidden')) return;
@@ -400,14 +560,22 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
                     case 'sexo':
                         groupKey = dep.sexo || 'O';
                         break;
+                    case 'comunidade': {
+                        const cId = getCommunityId(dep, graphType, dynamicCommunityMap);
+                        groupKey = cId != null ? String(cId) : 'sem_comunidade';
+                        break;
+                    }
                     default:
                         groupKey = dep.sigla_partido || dep.partido || 'OUTROS';
                 }
                 groupCounts[groupKey] = (groupCounts[groupKey] || 0) + 1;
+                if (!groupColors[groupKey]) {
+                    groupColors[groupKey] = graph.getNodeAttribute(nodeId, 'color') || COLORS.textMedium;
+                }
             });
-            onVisibleStatsChanged({ separateBy, groupCounts, totalVisible });
+            onVisibleStatsChanged({ separateBy, groupCounts, groupColors, totalVisible });
         }
-    }, [graph, filters, dataLoaded, applyLayout, graphType, edgesVersion, onVisibleStatsChanged]);
+    }, [graph, filters, dataLoaded, applyLayout, graphType, edgesVersion, onVisibleStatsChanged, dynamicCommunities]);
 
     useEffect(() => {
         applyFilters();
@@ -536,6 +704,10 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
 
                 // Compute connection breakdown by group (partido/estado/sexo)
                 const separateBy = filters.separateBy || 'partido';
+                const communityKey = getCommunityCacheKey(graphType, filters);
+                const dynamicCommunityMap = dynamicCommunities?.key === communityKey
+                    ? dynamicCommunities.comunidades
+                    : null;
                 const connectionBreakdown = {};
                 const connectionsList = [];
                 graph.forEachEdge(nodeId, (edgeId, attrs, source, target) => {
@@ -555,6 +727,11 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
                         case 'sexo':
                             groupKey = neighborDep.sexo || 'O';
                             break;
+                        case 'comunidade': {
+                            const cId = getCommunityId(neighborDep, graphType, dynamicCommunityMap);
+                            groupKey = cId != null ? String(cId) : 'sem_comunidade';
+                            break;
+                        }
                         default:
                             groupKey = neighborDep.sigla_partido || neighborDep.partido || 'OUTROS';
                     }
@@ -575,7 +752,7 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
                 onNodeClick({ ...dep, nodeColor: color, nodeId, conexoes, maxConexoes, connectionBreakdown, connectionsList });
             }
         },
-        [graph, onNodeClick, filters],
+        [graph, onNodeClick, filters, graphType, dynamicCommunities],
     );
 
     const loadingOverlayStyle = {
@@ -609,6 +786,10 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
         transition: 'width 0.2s ease',
     };
 
+    const activeCommunityKey = getCommunityCacheKey(graphType, filters);
+    const activeDynamicCommunityMap = dynamicCommunities?.key === activeCommunityKey
+        ? dynamicCommunities.comunidades
+        : null;
     const showLoading = !dataLoaded || isComputing;
 
     return (
@@ -621,7 +802,7 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
                     style={{ width: '100%', height: '100%', visibility: isComputing ? 'hidden' : 'visible' }}
                 >
                     <GraphEventsController setSelectedNode={handleNodeClick} />
-                    <GraphSettingsController selectedNode={selectedNode} pinnedIds={pinnedIds} highlightPinned={highlightPinned} hoveredLegendGroup={hoveredLegendGroup} hoveredBarGroup={hoveredBarGroup} hoveredConnectionNode={hoveredConnectionNode} separateBy={filters.separateBy} />
+                    <GraphSettingsController selectedNode={selectedNode} pinnedIds={pinnedIds} highlightPinned={highlightPinned} hoveredLegendGroup={hoveredLegendGroup} hoveredBarGroup={hoveredBarGroup} hoveredConnectionNode={hoveredConnectionNode} separateBy={filters.separateBy} graphType={graphType} dynamicCommunityMap={activeDynamicCommunityMap} />
                 </SigmaContainer>
             )}
             {showLoading && (

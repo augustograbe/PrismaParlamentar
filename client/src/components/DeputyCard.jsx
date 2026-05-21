@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import Button from './Button';
-import { COLORS, SPACING, FONTS, SHADOWS, PARTY_COLORS, STATE_COLORS, SEX_COLORS } from '../constants/theme';
+import { COLORS, SPACING, FONTS, SHADOWS, PARTY_COLORS, STATE_COLORS, SEX_COLORS, COMMUNITY_COLORS } from '../constants/theme';
 import { Pin, PinOff } from 'lucide-react';
 
 const SEX_LABELS = { M: 'Masculino', F: 'Feminino', O: 'Outro' };
@@ -16,6 +16,11 @@ function getGroupColor(key, separateBy) {
             return STATE_COLORS[key] || COLORS.textMedium;
         case 'sexo':
             return SEX_COLORS[key] || COLORS.textMedium;
+        case 'comunidade': {
+            const idx = parseInt(key, 10);
+            if (isNaN(idx)) return COLORS.textMedium;
+            return COMMUNITY_COLORS[idx % COMMUNITY_COLORS.length];
+        }
         default:
             return PARTY_COLORS[key] || COLORS.textMedium;
     }
@@ -27,6 +32,11 @@ function getGroupColor(key, separateBy) {
 function getGroupLabel(key, separateBy) {
     if (separateBy === 'sexo') {
         return SEX_LABELS[key] || key;
+    }
+    if (separateBy === 'comunidade') {
+        if (key === 'sem_comunidade') return 'Sem Comunidade';
+        const num = parseInt(key, 10);
+        if (!isNaN(num)) return `Comunidade ${num + 1}`;
     }
     return key;
 }

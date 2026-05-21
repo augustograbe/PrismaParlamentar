@@ -20,6 +20,7 @@ export default function RangeSlider({
     valueMax = 100,
     onChange,
     formatLabel,
+    disabled = false,
     style = {},
 }) {
     const trackRef = useRef(null);
@@ -36,6 +37,7 @@ export default function RangeSlider({
     }, [min, max]);
 
     const handleMouseDown = (thumb) => (e) => {
+        if (disabled) return;
         e.preventDefault();
         setDragging(thumb);
     };
@@ -73,6 +75,8 @@ export default function RangeSlider({
         flexDirection: 'column',
         gap: SPACING.xs,
         width: '100%',
+        opacity: disabled ? 0.5 : 1,
+        pointerEvents: disabled ? 'none' : 'auto',
         ...style,
     };
 

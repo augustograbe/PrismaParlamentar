@@ -15,6 +15,7 @@ export default function Dropdown({
     value,
     onChange,
     style = {},
+    disabled = false,
 }) {
     const containerStyle = {
         display: 'flex',
@@ -32,15 +33,16 @@ export default function Dropdown({
 
     const selectStyle = {
         appearance: 'none',
-        backgroundColor: COLORS.white,
+        backgroundColor: disabled ? COLORS.backgroundLight : COLORS.white,
         border: `1px solid ${COLORS.borderMedium}`,
         borderRadius: SPACING.radiusMd,
         padding: `${SPACING.xs} ${SPACING.xl} ${SPACING.xs} ${SPACING.md}`,
         fontSize: FONTS.sizeSm,
         fontFamily: FONTS.family,
-        color: COLORS.textDark,
-        cursor: 'pointer',
+        color: disabled ? COLORS.textLight : COLORS.textDark,
+        cursor: disabled ? 'not-allowed' : 'pointer',
         outline: 'none',
+        opacity: disabled ? 0.6 : 1,
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23555' stroke-width='1.5'/%3E%3C/svg%3E")`,
         backgroundRepeat: 'no-repeat',
         backgroundPosition: `right ${SPACING.sm} center`,
@@ -53,6 +55,7 @@ export default function Dropdown({
             <select
                 value={value}
                 onChange={onChange}
+                disabled={disabled}
                 style={selectStyle}
             >
                 {options.map((opt) => (

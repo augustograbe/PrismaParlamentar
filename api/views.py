@@ -1,12 +1,135 @@
 from rest_framework import viewsets
-from deputados.models import Deputado
-from grafos.models import GrafoAresta
-from .serializers import DeputadoSerializer, GrafoArestaSerializer
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from deputados.models import Deputado, ProposicaoAutor
+from grafos.models import GrafoAresta, BackboneAresta
+from analises.services import calcular_comunidades_coautoria, calcular_comunidades_votos
+from .serializers import DeputadoSerializer, GrafoArestaSerializer, BackboneArestaSerializer, AtividadeDiariaSerializer
 
 
 class DeputadoViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Deputado.objects.all()
     serializer_class = DeputadoSerializer
+
+    @action(detail=True, methods=['get'])
+    def atividades(self, request, pk=None):
+        deputado = self.get_object()
+        atividades = deputado.atividades_diarias.all().order_by('data')
+        serializer = AtividadeDiariaSerializer(atividades, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def estatisticas_gerais(self, request, pk=None):
+        deputado = self.get_object()
+        
+        total_discursos = deputado.discursos.count()
+        
+        proposicoes_qs = ProposicaoAutor.objects.filter(
+            deputado=deputado,
+            proposicao__sigla_tipo__in=['PL', 'PLP', 'PEC']
+        ).select_related('proposicao')
+        total_proposicoes = proposicoes_qs.count()
+
+
+        tipos_proposicao = {}
+        for pa in proposicoes_qs:
+            prop = pa.proposicao
+            tipo = prop.sigla_tipo or 'Outros'
+            situacao = prop.situacao or 'Desconhecida'
+
+            if tipo not in tipos_proposicao:
+                tipos_proposicao[tipo] = {'total': 0, 'situacoes': {}}
+            
+            tipos_proposicao[tipo]['total'] += 1
+            if situacao not in tipos_proposicao[tipo]['situacoes']:
+                tipos_proposicao[tipo]['situacoes'][situacao] = 0
+            tipos_proposicao[tipo]['situacoes'][situacao] += 1
+
+        return Response({
+            'total_discursos': total_discursos,
+            'total_proposicoes': total_proposicoes,
+            'tipos_proposicao': tipos_proposicao
+        })
+
+    @action(detail=True, methods=['get'])
+    def despesas(self, request, pk=None):
+        deputado = self.get_object()
+        
+        from datetime import datetime
+        ano_corrente = datetime.now().year
+        try:
+            selected_year = int(request.query_params.get('ano', ano_corrente))
+        except ValueError:
+            selected_year = ano_corrente
+            
+        despesas_ano = deputado.despesas.filter(ano=selected_year)
+        
+        from django.db import models
+        total_gasto_ano = despesas_ano.aggregate(total=models.Sum('valor_liquido'))['total'] or 0.0
+        total_gasto_ano = float(total_gasto_ano)
+        
+        # Limite da cota CEAP por estado reajustado
+        LIMITS_BY_STATE = {
+            'AC': 57359.87, 'AL': 53164.36, 'AM': 56151.46, 'AP': 55929.26,
+            'BA': 50965.29, 'CE': 54879.34, 'DF': 41612.55, 'ES': 49160.15,
+            'GO': 46979.73, 'MA': 54537.99, 'MG': 47645.91, 'MS': 52707.93,
+            'MT': 51439.83, 'PA': 54624.17, 'PB': 54402.48, 'PE': 53997.81,
+            'PI': 53195.84, 'PR': 50807.19, 'RJ': 47267.41, 'RN': 55198.09,
+            'RO': 56267.90, 'RR': 58474.70, 'RS': 53086.78, 'SC': 51951.42,
+            'SE': 52248.86, 'SP': 48727.46, 'TO': 51525.80
+        }
+        
+        uf = deputado.sigla_uf or 'SP'
+        limite_mensal = LIMITS_BY_STATE.get(uf.upper(), 50000.00)
+        limite_anual = limite_mensal * 12
+        percentual_gasto_ano = (total_gasto_ano / limite_anual) * 100 if limite_anual > 0 else 0
+        
+        gastos_mensais_raw = despesas_ano.values('mes').annotate(total=models.Sum('valor_liquido')).order_by('mes')
+        gastos_mensais_map = {item['mes']: float(item['total']) for item in gastos_mensais_raw}
+        
+        detalhes_mensais_raw = despesas_ano.values('mes', 'tipo_despesa').annotate(total=models.Sum('valor_liquido')).order_by('mes', '-total')
+        detalhes_ano_raw = despesas_ano.values('tipo_despesa').annotate(total=models.Sum('valor_liquido')).order_by('-total')
+        
+        detalhes_ano = []
+        for item in detalhes_ano_raw:
+            val = float(item['total'])
+            detalhes_ano.append({
+                'tipo': item['tipo_despesa'],
+                'valor': val,
+                'percentual': (val / total_gasto_ano) * 100 if total_gasto_ano > 0 else 0
+            })
+            
+        gastos_por_mes = []
+        for m in range(1, 13):
+            total_mes = gastos_mensais_map.get(m, 0.0)
+            
+            detalhes_mes = []
+            for item in detalhes_mensais_raw:
+                if item['mes'] == m:
+                    val = float(item['total'])
+                    detalhes_mes.append({
+                        'tipo': item['tipo_despesa'],
+                        'valor': val,
+                        'percentual': (val / total_mes) * 100 if total_mes > 0 else 0
+                    })
+                    
+            gastos_por_mes.append({
+                'mes': m,
+                'total': total_mes,
+                'percentual_limite': (total_mes / limite_mensal) * 100 if limite_mensal > 0 else 0,
+                'detalhes': detalhes_mes
+            })
+            
+        return Response({
+            'ano': selected_year,
+            'limite_mensal': limite_mensal,
+            'limite_anual': limite_anual,
+            'total_gasto_ano': total_gasto_ano,
+            'percentual_gasto_ano': percentual_gasto_ano,
+            'gastos_por_mes': gastos_por_mes,
+            'detalhes_ano': detalhes_ano
+        })
 
 
 class GrafoArestaViewSet(viewsets.ReadOnlyModelViewSet):
@@ -40,4 +163,96 @@ class ArestaCoautoriaViewSet(viewsets.ReadOnlyModelViewSet):
         if min_coautoria is not None:
             queryset = queryset.filter(coautoria__gte=int(min_coautoria))
             
+        return queryset
+
+
+class ComunidadesVotosView(APIView):
+    def get(self, request):
+        try:
+            legislatura = int(request.query_params.get('legislatura', 57))
+            min_similaridade = float(request.query_params.get('min_similaridade', 80))
+            max_similaridade = float(request.query_params.get('max_similaridade', 100))
+        except (TypeError, ValueError):
+            return Response(
+                {'detail': 'legislatura, min_similaridade e max_similaridade devem ser numericos.'},
+                status=400,
+            )
+
+        algoritmo = request.query_params.get('algoritmo', 'louvain').lower()
+
+        if min_similaridade > max_similaridade:
+            return Response(
+                {'detail': 'min_similaridade deve ser menor ou igual a max_similaridade.'},
+                status=400,
+            )
+
+        try:
+            resultado = calcular_comunidades_votos(
+                legislatura=legislatura,
+                min_similaridade=min_similaridade,
+                max_similaridade=max_similaridade,
+                algoritmo=algoritmo,
+            )
+        except ValueError as exc:
+            return Response({'detail': str(exc)}, status=400)
+
+        return Response(resultado)
+
+
+class ComunidadesCoautoriaView(APIView):
+    def get(self, request):
+        try:
+            legislatura = int(request.query_params.get('legislatura', 57))
+            min_coautoria = int(request.query_params.get('min_coautoria', 1))
+            max_coautoria = int(request.query_params.get('max_coautoria', 999))
+        except (TypeError, ValueError):
+            return Response(
+                {'detail': 'legislatura, min_coautoria e max_coautoria devem ser numericos.'},
+                status=400,
+            )
+
+        algoritmo = request.query_params.get('algoritmo', 'louvain').lower()
+
+        if min_coautoria > max_coautoria:
+            return Response(
+                {'detail': 'min_coautoria deve ser menor ou igual a max_coautoria.'},
+                status=400,
+            )
+
+        try:
+            resultado = calcular_comunidades_coautoria(
+                legislatura=legislatura,
+                min_coautoria=min_coautoria,
+                max_coautoria=max_coautoria,
+                algoritmo=algoritmo,
+            )
+        except ValueError as exc:
+            return Response({'detail': str(exc)}, status=400)
+
+        return Response(resultado)
+
+
+class BackboneArestaViewSet(viewsets.ReadOnlyModelViewSet):
+    """Endpoint para arestas de backbone pré-calculadas."""
+    queryset = BackboneAresta.objects.all()
+    serializer_class = BackboneArestaSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        # Filtro obrigatório: método do backbone
+        metodo = self.request.query_params.get('metodo', None)
+        if metodo:
+            queryset = queryset.filter(metodo=metodo)
+
+        # Filtro obrigatório: tipo de grafo
+        tipo_grafo = self.request.query_params.get('tipo_grafo', None)
+        if tipo_grafo:
+            queryset = queryset.filter(tipo_grafo=tipo_grafo)
+
+        # Filtro opcional: legislatura
+        legislatura = self.request.query_params.get('legislatura', None)
+        if legislatura:
+            queryset = queryset.filter(legislatura=int(legislatura))
+
         return queryset

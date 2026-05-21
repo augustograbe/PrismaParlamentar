@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from deputados.models import Deputado, Orgao, Proposicao, Votacao
-from grafos.models import GrafoAresta
-from analises.models import DeputadoPresenca
+from grafos.models import GrafoAresta, BackboneAresta
+from analises.models import DeputadoAnalise, AtividadeDiaria
 
 
 class DeputadoSerializer(serializers.ModelSerializer):
@@ -11,15 +11,35 @@ class DeputadoSerializer(serializers.ModelSerializer):
         model = Deputado
         fields = '__all__'
 
+    def _get_analise(self, obj):
+        """Cache the analise lookup per object to avoid repeated queries."""
+        cache_attr = '_analise_cache'
+        if not hasattr(obj, cache_attr):
+            try:
+                obj._analise_cache = DeputadoAnalise.objects.get(
+                    deputado=obj, legislatura=obj.id_legislatura
+                )
+            except DeputadoAnalise.DoesNotExist:
+                obj._analise_cache = None
+        return obj._analise_cache
+
     def get_presenca(self, obj):
-        try:
-            p = DeputadoPresenca.objects.get(deputado=obj, legislatura=obj.id_legislatura)
-            return p.presenca_percentual
-        except DeputadoPresenca.DoesNotExist:
-            return None
+        analise = self._get_analise(obj)
+        return analise.presenca_percentual if analise else None
 
 
 class GrafoArestaSerializer(serializers.ModelSerializer):
     class Meta:
         model = GrafoAresta
         fields = '__all__'
+
+
+class BackboneArestaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BackboneAresta
+        fields = '__all__'
+
+class AtividadeDiariaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AtividadeDiaria
+        fields = ['data', 'pontuacao', 'intensidade', 'detalhes']

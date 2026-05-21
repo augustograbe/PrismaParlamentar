@@ -105,6 +105,14 @@ export const SEX_COLORS = {
     O: '#8e44ad',
 };
 
+// Cores para comunidades detectadas (paleta de 20 cores distintas)
+export const COMMUNITY_COLORS = [
+    '#e63946', '#457b9d', '#2a9d8f', '#e9c46a', '#f4a261',
+    '#264653', '#6a994e', '#bc6c25', '#9b2226', '#ae2012',
+    '#669bbc', '#003049', '#8338ec', '#f77f00', '#fcbf49',
+    '#3a86ff', '#ff006e', '#fb5607', '#06d6a0', '#118ab2',
+];
+
 export const FONTS = {
     family: "'Inter', 'Segoe UI', sans-serif",
     sizeXs: '11px',

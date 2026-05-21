@@ -81,7 +81,7 @@ export default function ActivityCalendar({ deputyId }) {
             case 3: return COLORS.orange;
             case 4: return '#b86604';
             case 0:
-            default: return '#ebedf0';
+            default: return '#e0e0e0';
         }
     };
 
@@ -89,10 +89,21 @@ export default function ActivityCalendar({ deputyId }) {
     if (error) return <div style={{ padding: SPACING.md, color: COLORS.textMedium }}>Erro: {error}</div>;
 
     const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const CELL_SIZE = 13;
+    const CELL_GAP = 3;
+    const WEEK_WIDTH = CELL_SIZE + CELL_GAP;
 
     return (
-        <div style={{ position: 'relative', marginTop: SPACING.md }}>
-            <h3 style={{ fontSize: FONTS.sizeMd, marginBottom: SPACING.md, color: COLORS.textDark }}>
+        <div style={{
+            position: 'relative',
+            marginTop: SPACING.md,
+            backgroundColor: COLORS.backgroundLight,
+            border: `1px solid ${COLORS.borderLight}`,
+            borderRadius: SPACING.radiusMd,
+            padding: SPACING.md,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+        }}>
+            <h3 style={{ fontSize: FONTS.sizeMd, fontWeight: '500', marginBottom: SPACING.md, marginTop: 0, color: COLORS.textMedium }}>
                 Atividade Parlamentar ({selectedYear})
             </h3>
             
@@ -101,12 +112,18 @@ export default function ActivityCalendar({ deputyId }) {
                     {/* Month headers */}
                     <div style={{ display: 'flex', marginLeft: '30px', position: 'relative', height: '20px' }}>
                         {weeks.map((week, i) => {
-                            const d = new Date(week[0].date + 'T12:00:00');
+                            const firstDayInYear = week.find(d => d.isCurrentYear);
+                            if (!firstDayInYear) return null;
+                            
+                            const d = new Date(firstDayInYear.date + 'T12:00:00');
                             const month = d.getMonth();
-                            const prevMonth = i > 0 ? new Date(weeks[i-1][0].date + 'T12:00:00').getMonth() : -1;
+                            
+                            const prevWeekFirstDay = i > 0 ? weeks[i-1].find(d => d.isCurrentYear) : null;
+                            const prevMonth = prevWeekFirstDay ? new Date(prevWeekFirstDay.date + 'T12:00:00').getMonth() : -1;
+                            
                             if (month !== prevMonth && i < weeks.length - 2) {
                                 return (
-                                    <div key={i} style={{ position: 'absolute', left: `${i * 15}px`, fontSize: '12px', color: COLORS.textMedium }}>
+                                    <div key={i} style={{ position: 'absolute', left: `${i * WEEK_WIDTH}px`, fontSize: '11px', color: COLORS.textMedium }}>
                                         {monthNames[month]}
                                     </div>
                                 );
@@ -117,28 +134,28 @@ export default function ActivityCalendar({ deputyId }) {
 
                     <div style={{ display: 'flex' }}>
                         {/* Day headers */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginRight: '8px', fontSize: '12px', color: COLORS.textMedium }}>
-                            <div style={{ height: '12px', lineHeight: '12px' }}></div>
-                            <div style={{ height: '12px', lineHeight: '12px' }}>Seg</div>
-                            <div style={{ height: '12px', lineHeight: '12px' }}></div>
-                            <div style={{ height: '12px', lineHeight: '12px' }}>Qua</div>
-                            <div style={{ height: '12px', lineHeight: '12px' }}></div>
-                            <div style={{ height: '12px', lineHeight: '12px' }}>Sex</div>
-                            <div style={{ height: '12px', lineHeight: '12px' }}></div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: `${CELL_GAP}px`, marginRight: '6px', fontSize: '11px', color: COLORS.textMedium }}>
+                            <div style={{ height: `${CELL_SIZE}px`, lineHeight: `${CELL_SIZE}px` }}></div>
+                            <div style={{ height: `${CELL_SIZE}px`, lineHeight: `${CELL_SIZE}px` }}>Seg</div>
+                            <div style={{ height: `${CELL_SIZE}px`, lineHeight: `${CELL_SIZE}px` }}></div>
+                            <div style={{ height: `${CELL_SIZE}px`, lineHeight: `${CELL_SIZE}px` }}>Qua</div>
+                            <div style={{ height: `${CELL_SIZE}px`, lineHeight: `${CELL_SIZE}px` }}></div>
+                            <div style={{ height: `${CELL_SIZE}px`, lineHeight: `${CELL_SIZE}px` }}>Sex</div>
+                            <div style={{ height: `${CELL_SIZE}px`, lineHeight: `${CELL_SIZE}px` }}></div>
                         </div>
 
                         {/* Grid */}
-                        <div style={{ display: 'flex', gap: '3px' }}>
+                        <div style={{ display: 'flex', gap: `${CELL_GAP}px` }}>
                             {weeks.map((week, weekIndex) => (
-                                <div key={weekIndex} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                                    {week.map((day, dayIndex) => (
+                                <div key={weekIndex} style={{ display: 'flex', flexDirection: 'column', gap: `${CELL_GAP}px` }}>
+                                    {week.map((day) => (
                                         <div 
                                             key={day.date}
                                             onMouseEnter={(e) => setHoveredCell({ day, rect: e.target.getBoundingClientRect() })}
                                             onMouseLeave={() => setHoveredCell(null)}
                                             style={{
-                                                width: '12px',
-                                                height: '12px',
+                                                width: `${CELL_SIZE}px`,
+                                                height: `${CELL_SIZE}px`,
                                                 backgroundColor: getColor(day.activity.intensidade, day.isCurrentYear),
                                                 borderRadius: '2px',
                                                 cursor: day.isCurrentYear ? 'pointer' : 'default',
@@ -152,40 +169,51 @@ export default function ActivityCalendar({ deputyId }) {
                                 </div>
                             ))}
                         </div>
-                    </div>
-                </div>
 
-                {/* Years Selector */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginLeft: SPACING.xl }}>
-                    {years.map(year => (
-                        <button
-                            key={year}
-                            onClick={() => setSelectedYear(year)}
-                            style={{
-                                background: selectedYear === year ? COLORS.orange : 'transparent',
-                                color: selectedYear === year ? 'white' : COLORS.textMedium,
-                                border: 'none',
-                                padding: '6px 12px',
-                                borderRadius: '16px',
-                                cursor: 'pointer',
-                                fontSize: '14px',
-                                fontWeight: selectedYear === year ? 'bold' : 'normal',
-                                transition: 'background 0.2s',
-                            }}
-                        >
-                            {year}
-                        </button>
-                    ))}
+                        {/* Years Selector aligned with top and bottom rows */}
+                        <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            height: `${7 * CELL_SIZE + 6 * CELL_GAP}px`, // 109px - aligns exactly with the first and last row
+                            marginLeft: '12px',
+                            flexShrink: 0
+                        }}>
+                            {years.map(year => (
+                                <button
+                                    key={year}
+                                    onClick={() => setSelectedYear(year)}
+                                    style={{
+                                        background: selectedYear === year ? COLORS.orange : 'transparent',
+                                        color: selectedYear === year ? 'white' : COLORS.textMedium,
+                                        border: 'none',
+                                        padding: '0 6px',
+                                        height: '18px',
+                                        borderRadius: '3px',
+                                        cursor: 'pointer',
+                                        fontSize: '11px',
+                                        fontWeight: selectedYear === year ? 'bold' : 'normal',
+                                        transition: 'background 0.2s',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    {year}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: FONTS.sizeSm, color: COLORS.textMedium, marginTop: SPACING.sm, marginLeft: '30px' }}>
                 <span>Menos</span>
-                <div style={{ width: 12, height: 12, backgroundColor: getColor(0, true), borderRadius: 2 }}></div>
-                <div style={{ width: 12, height: 12, backgroundColor: getColor(1, true), borderRadius: 2 }}></div>
-                <div style={{ width: 12, height: 12, backgroundColor: getColor(2, true), borderRadius: 2 }}></div>
-                <div style={{ width: 12, height: 12, backgroundColor: getColor(3, true), borderRadius: 2 }}></div>
-                <div style={{ width: 12, height: 12, backgroundColor: getColor(4, true), borderRadius: 2 }}></div>
+                <div style={{ width: CELL_SIZE, height: CELL_SIZE, backgroundColor: getColor(0, true), borderRadius: 2 }}></div>
+                <div style={{ width: CELL_SIZE, height: CELL_SIZE, backgroundColor: getColor(1, true), borderRadius: 2 }}></div>
+                <div style={{ width: CELL_SIZE, height: CELL_SIZE, backgroundColor: getColor(2, true), borderRadius: 2 }}></div>
+                <div style={{ width: CELL_SIZE, height: CELL_SIZE, backgroundColor: getColor(3, true), borderRadius: 2 }}></div>
+                <div style={{ width: CELL_SIZE, height: CELL_SIZE, backgroundColor: getColor(4, true), borderRadius: 2 }}></div>
                 <span>Mais</span>
             </div>
 

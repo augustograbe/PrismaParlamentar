@@ -64,6 +64,7 @@ class Proposicao(models.Model):
     numero = models.IntegerField(null=True, blank=True)
     ano = models.IntegerField(null=True, blank=True)
     ementa = models.TextField(null=True, blank=True)
+    situacao = models.CharField(max_length=200, null=True, blank=True)
 
     def __str__(self):
         return f'{self.sigla_tipo} {self.numero}/{self.ano}'

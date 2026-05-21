@@ -2,7 +2,7 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from deputados.models import Deputado
+from deputados.models import Deputado, ProposicaoAutor
 from grafos.models import GrafoAresta, BackboneAresta
 from analises.services import calcular_comunidades_coautoria, calcular_comunidades_votos
 from .serializers import DeputadoSerializer, GrafoArestaSerializer, BackboneArestaSerializer, AtividadeDiariaSerializer
@@ -18,6 +18,39 @@ class DeputadoViewSet(viewsets.ReadOnlyModelViewSet):
         atividades = deputado.atividades_diarias.all().order_by('data')
         serializer = AtividadeDiariaSerializer(atividades, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def estatisticas_gerais(self, request, pk=None):
+        deputado = self.get_object()
+        
+        total_discursos = deputado.discursos.count()
+        
+        proposicoes_qs = ProposicaoAutor.objects.filter(
+            deputado=deputado,
+            proposicao__sigla_tipo__in=['PL', 'PLP', 'PEC']
+        ).select_related('proposicao')
+        total_proposicoes = proposicoes_qs.count()
+
+
+        tipos_proposicao = {}
+        for pa in proposicoes_qs:
+            prop = pa.proposicao
+            tipo = prop.sigla_tipo or 'Outros'
+            situacao = prop.situacao or 'Desconhecida'
+
+            if tipo not in tipos_proposicao:
+                tipos_proposicao[tipo] = {'total': 0, 'situacoes': {}}
+            
+            tipos_proposicao[tipo]['total'] += 1
+            if situacao not in tipos_proposicao[tipo]['situacoes']:
+                tipos_proposicao[tipo]['situacoes'][situacao] = 0
+            tipos_proposicao[tipo]['situacoes'][situacao] += 1
+
+        return Response({
+            'total_discursos': total_discursos,
+            'total_proposicoes': total_proposicoes,
+            'tipos_proposicao': tipos_proposicao
+        })
 
 
 class GrafoArestaViewSet(viewsets.ReadOnlyModelViewSet):

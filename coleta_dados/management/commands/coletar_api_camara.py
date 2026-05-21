@@ -232,20 +232,20 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.ERROR(f"Arquivo de proposições de {ano} vazio ou não acessível."))
                 continue
                 
-            # Filtrar apenas Projetos de Lei (PL) - a coluna correta no CSV geralmente é siglaTipo
+            # Remover o filtro de Projetos de Lei (PL) para coletar todos os tipos
             if 'siglaTipo' in df_props.columns:
-                df_pls = df_props[df_props['siglaTipo'] == 'PL']
+                df_pls = df_props
             else:
                 self.stdout.write(self.style.ERROR("Coluna 'siglaTipo' não encontrada no CSV de proposições."))
                 continue
 
-            self.stdout.write(f"Total de PLs em {ano}: {len(df_pls)}")
+            self.stdout.write(f"Total de proposições em {ano}: {len(df_pls)}")
             
             # Salvar proposições
             prop_objs = []
             prop_ids_validos = set()
             
-            for _, row in tqdm(df_pls.iterrows(), total=len(df_pls), desc=f"Salvando PLs {ano}"):
+            for _, row in tqdm(df_pls.iterrows(), total=len(df_pls), desc=f"Salvando Proposições {ano}"):
                 p_id = int(row['id'])
                 prop_ids_validos.add(p_id)
                 prop_objs.append(
@@ -256,6 +256,7 @@ class Command(BaseCommand):
                         numero=int(row['numero']) if pd.notna(row.get('numero')) else None,
                         ano=int(row['ano']) if pd.notna(row.get('ano')) else None,
                         ementa=str(row.get('ementa', '')),
+                        situacao=str(row.get('ultimoStatus_descricaoSituacao', '')) if pd.notna(row.get('ultimoStatus_descricaoSituacao')) else None
                     )
                 )
                 

@@ -25,6 +25,7 @@ export default function SearchBar({
     style = {},
     suggestions = [],
     onSelectSuggestion,
+    onSelectProfile,
 }) {
     const [query, setQuery] = useState(value || '');
     const [showDropdown, setShowDropdown] = useState(false);
@@ -83,6 +84,17 @@ export default function SearchBar({
         setQuery('');
         setShowDropdown(false);
         if (onSelectSuggestion) onSelectSuggestion(dep);
+        inputRef.current?.blur();
+    };
+
+    const handleProfileSelect = (dep) => {
+        setQuery('');
+        setShowDropdown(false);
+        if (onSelectProfile) {
+            onSelectProfile(dep);
+        } else if (onSelectSuggestion) {
+            onSelectSuggestion(dep);
+        }
         inputRef.current?.blur();
     };
 
@@ -324,6 +336,36 @@ export default function SearchBar({
                                             {dep.sigla_uf || dep.estado}
                                         </span>
                                     )}
+                                    <button
+                                        style={{
+                                            fontSize: '11px',
+                                            fontFamily: FONTS.family,
+                                            fontWeight: FONTS.weightMedium,
+                                            padding: `1px ${SPACING.sm}`,
+                                            borderRadius: SPACING.radiusSm,
+                                            backgroundColor: 'transparent',
+                                            border: `1px solid ${COLORS.orange}`,
+                                            color: COLORS.orange,
+                                            cursor: 'pointer',
+                                            transition: 'all 0.15s ease',
+                                            marginLeft: SPACING.xs,
+                                        }}
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            handleProfileSelect(dep);
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.backgroundColor = COLORS.orange;
+                                            e.currentTarget.style.color = COLORS.white;
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.backgroundColor = 'transparent';
+                                            e.currentTarget.style.color = COLORS.orange;
+                                        }}
+                                    >
+                                        Perfil
+                                    </button>
                                 </div>
                             </div>
                         ))

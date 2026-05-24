@@ -25,6 +25,15 @@ export default function DeputyExpenses({ deputyId }) {
 
     const years = [2026, 2025, 2024, 2023];
 
+    const [expandedCategory, setExpandedCategory] = useState(null);
+    const [expandedCompany, setExpandedCompany] = useState(null);
+
+    // Reset expanded category and company when filters change
+    useEffect(() => {
+        setExpandedCategory(null);
+        setExpandedCompany(null);
+    }, [selectedYear, selectedMonth]);
+
     useEffect(() => {
         if (!deputyId) return;
 
@@ -123,10 +132,6 @@ export default function DeputyExpenses({ deputyId }) {
     const selectedMonthData = selectedMonth 
         ? gastos_por_mes.find(m => m.mes === selectedMonth) 
         : null;
-
-    // Math for monthly chart
-    const maxGastoMensal = Math.max(...gastos_por_mes.map(m => m.total), limite_mensal);
-    const chartMax = maxGastoMensal * 1.15; // 15% headroom
 
     // Calculate Gauge Values
     const gaugeTitle = selectedMonth 
@@ -259,6 +264,43 @@ export default function DeputyExpenses({ deputyId }) {
 
                     {/* Chart columns row */}
                     <div style={{ display: 'flex', alignItems: 'flex-end', flex: 1 }}>
+                        {/* Years Selector aligned vertically, moved to the left side with marginRight */}
+                        <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            height: '120px',
+                            marginRight: SPACING.lg,
+                            marginBottom: '20px',
+                            flexShrink: 0,
+                        }}>
+                            {years.map(year => (
+                                <button
+                                    key={year}
+                                    onClick={() => setSelectedYear(year)}
+                                    style={{
+                                        background: selectedYear === year ? COLORS.orange : 'transparent',
+                                        color: selectedYear === year ? 'white' : COLORS.textMedium,
+                                        border: selectedYear === year ? 'none' : `1px solid ${COLORS.borderLight}`,
+                                        padding: '0 8px',
+                                        height: '22px',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer',
+                                        fontSize: '11px',
+                                        fontWeight: selectedYear === year ? 'bold' : 'normal',
+                                        transition: 'background 0.2s, border-color 0.2s',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        boxShadow: selectedYear === year ? '0 1px 3px rgba(0,0,0,0.15)' : 'none'
+                                    }}
+                                >
+                                    {year}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Chart columns area */}
                         <div style={{
                             display: 'flex',
                             flexDirection: 'column',
@@ -268,10 +310,10 @@ export default function DeputyExpenses({ deputyId }) {
                             justifyContent: 'flex-end',
                             paddingBottom: '20px'
                         }}>
-                            {/* Visual Dashed Limit Line */}
+                            {/* Visual Dashed Limit Line - Aligned at exactly 100px (100% of normal limit cota) */}
                             <div style={{
                                 position: 'absolute',
-                                bottom: `calc(${(limite_mensal / chartMax) * 120}px + 20px)`,
+                                bottom: 'calc(100px + 20px)',
                                 left: 0,
                                 right: 0,
                                 borderTop: '1px dashed #ef4444',
@@ -303,7 +345,7 @@ export default function DeputyExpenses({ deputyId }) {
                                 zIndex: 6
                             }}>
                                 {gastos_por_mes.map((m) => {
-                                    const heightVal = (m.total / chartMax) * 120;
+                                    const heightVal = Math.min((m.total / limite_mensal) * 100, 120);
                                     const isExceeded = m.total > limite_mensal;
                                     const isSelected = selectedMonth === m.mes;
 
@@ -329,6 +371,7 @@ export default function DeputyExpenses({ deputyId }) {
                                                 margin: '0 4px',
                                                 height: '100%',
                                                 justifyContent: 'flex-end',
+                                                position: 'relative',
                                             }}
                                         >
                                             {/* Actual colored bar */}
@@ -349,7 +392,10 @@ export default function DeputyExpenses({ deputyId }) {
                                                 fontSize: '11px',
                                                 color: isSelected ? COLORS.orange : COLORS.textMedium,
                                                 fontWeight: isSelected ? 'bold' : 'normal',
-                                                marginTop: '6px',
+                                                position: 'absolute',
+                                                bottom: '-20px',
+                                                left: '50%',
+                                                transform: 'translateX(-50%)',
                                                 textAlign: 'center',
                                                 whiteSpace: 'nowrap'
                                             }}>
@@ -359,42 +405,6 @@ export default function DeputyExpenses({ deputyId }) {
                                     );
                                 })}
                             </div>
-                        </div>
-
-                        {/* Years Selector aligned vertically, height set exactly to 120px to match chart columns */}
-                        <div style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'space-between',
-                            height: '120px',
-                            marginLeft: SPACING.lg,
-                            marginBottom: '20px',
-                            flexShrink: 0,
-                        }}>
-                            {years.map(year => (
-                                <button
-                                    key={year}
-                                    onClick={() => setSelectedYear(year)}
-                                    style={{
-                                        background: selectedYear === year ? COLORS.orange : 'transparent',
-                                        color: selectedYear === year ? 'white' : COLORS.textMedium,
-                                        border: selectedYear === year ? 'none' : `1px solid ${COLORS.borderLight}`,
-                                        padding: '0 8px',
-                                        height: '22px',
-                                        borderRadius: '4px',
-                                        cursor: 'pointer',
-                                        fontSize: '11px',
-                                        fontWeight: selectedYear === year ? 'bold' : 'normal',
-                                        transition: 'background 0.2s, border-color 0.2s',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        boxShadow: selectedYear === year ? '0 1px 3px rgba(0,0,0,0.15)' : 'none'
-                                    }}
-                                >
-                                    {year}
-                                </button>
-                            ))}
                         </div>
                     </div>
 
@@ -562,29 +572,28 @@ export default function DeputyExpenses({ deputyId }) {
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {breakdownList.map((item, index) => {
+                            const isCategoryExpanded = expandedCategory === item.tipo;
                             return (
                                 <div
                                     key={index}
                                     style={{
                                         position: 'relative',
-                                        padding: '10px 14px',
                                         borderRadius: '6px',
                                         border: `1px solid ${COLORS.borderLight}`,
                                         backgroundColor: '#ffffff',
-                                        overflow: 'hidden',
                                         display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
+                                        flexDirection: 'column',
                                         boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-                                        minHeight: '40px'
+                                        overflow: 'hidden',
+                                        transition: 'all 0.2s ease',
                                     }}
                                 >
-                                    {/* Subtle progress bar at the background */}
+                                    {/* Subtle progress bar at the background of the header area */}
                                     <div style={{
                                         position: 'absolute',
                                         top: 0,
                                         left: 0,
-                                        bottom: 0,
+                                        height: '40px',
                                         width: `${item.percentual}%`,
                                         backgroundColor: 'rgba(232, 133, 12, 0.07)',
                                         transition: 'width 0.4s ease',
@@ -592,35 +601,241 @@ export default function DeputyExpenses({ deputyId }) {
                                         pointerEvents: 'none'
                                     }} />
 
-                                    {/* Category Label */}
-                                    <span style={{
-                                        position: 'relative',
-                                        zIndex: 2,
-                                        fontSize: FONTS.sizeMd,
-                                        fontWeight: '500',
-                                        color: COLORS.textDark,
-                                        paddingRight: SPACING.md,
-                                        flex: 1
-                                    }}>
-                                        {item.tipo}
-                                    </span>
+                                    {/* Clickable Header Row */}
+                                    <div
+                                        onClick={() => {
+                                            const nextVal = isCategoryExpanded ? null : item.tipo;
+                                            setExpandedCategory(nextVal);
+                                            setExpandedCompany(null); // Reset company expansion when changing categories
+                                        }}
+                                        style={{
+                                            padding: '10px 14px',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            cursor: 'pointer',
+                                            minHeight: '40px',
+                                            boxSizing: 'border-box',
+                                            backgroundColor: isCategoryExpanded ? 'rgba(232, 133, 12, 0.02)' : 'transparent',
+                                            transition: 'background-color 0.2s',
+                                            zIndex: 2,
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (!isCategoryExpanded) e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.01)';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (!isCategoryExpanded) e.currentTarget.style.backgroundColor = 'transparent';
+                                        }}
+                                    >
+                                        {/* Category Label */}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                                            {/* Chevron icon */}
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={COLORS.textMedium} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.2s', transform: isCategoryExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                                                <polyline points="6 9 12 15 18 9"></polyline>
+                                            </svg>
+                                            <span style={{
+                                                fontSize: FONTS.sizeMd,
+                                                fontWeight: '500',
+                                                color: COLORS.textDark,
+                                                textOverflow: 'ellipsis',
+                                                overflow: 'hidden',
+                                                whiteSpace: 'nowrap'
+                                            }}>
+                                                {item.tipo}
+                                            </span>
+                                        </div>
 
-                                    {/* Category Price and Percentage */}
-                                    <div style={{
-                                        position: 'relative',
-                                        zIndex: 2,
-                                        display: 'flex',
-                                        alignItems: 'baseline',
-                                        gap: SPACING.sm,
-                                        flexShrink: 0
-                                    }}>
-                                        <span style={{ fontSize: '13px', color: COLORS.textMedium }}>
-                                            {item.percentual.toFixed(1)}%
-                                        </span>
-                                        <span style={{ fontSize: FONTS.sizeMd, fontWeight: 'bold', color: COLORS.orange }}>
-                                            {formatCurrency(item.valor)}
-                                        </span>
+                                        {/* Category Price and Percentage */}
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'baseline',
+                                            gap: SPACING.sm,
+                                            flexShrink: 0
+                                        }}>
+                                            <span style={{ fontSize: '13px', color: COLORS.textMedium }}>
+                                                {item.percentual.toFixed(1)}%
+                                            </span>
+                                            <span style={{ fontSize: FONTS.sizeMd, fontWeight: 'bold', color: COLORS.orange }}>
+                                                {formatCurrency(item.valor)}
+                                            </span>
+                                        </div>
                                     </div>
+
+                                    {/* Expanded Category Content */}
+                                    {isCategoryExpanded && (
+                                        <div style={{
+                                            padding: '14px',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '8px',
+                                            borderTop: `1px solid ${COLORS.borderLight}`,
+                                            backgroundColor: '#f9fafb',
+                                            zIndex: 2,
+                                        }}>
+                                            {item.empresas && item.empresas.length > 0 ? (
+                                                item.empresas.map((emp, empIdx) => {
+                                                    const empKey = `${emp.cnpj_cpf}-${emp.nome}`;
+                                                    const isCompanyExpanded = expandedCompany === empKey;
+                                                    return (
+                                                        <div
+                                                            key={empIdx}
+                                                            style={{
+                                                                borderRadius: '6px',
+                                                                border: `1px solid ${COLORS.borderLight}`,
+                                                                backgroundColor: '#ffffff',
+                                                                overflow: 'hidden',
+                                                                display: 'flex',
+                                                                flexDirection: 'column',
+                                                                transition: 'all 0.2s ease',
+                                                                boxShadow: '0 1px 2px rgba(0,0,0,0.01)',
+                                                            }}
+                                                        >
+                                                            {/* Company Header Row */}
+                                                            <div
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setExpandedCompany(isCompanyExpanded ? null : empKey);
+                                                                }}
+                                                                style={{
+                                                                    padding: '8px 12px',
+                                                                    display: 'flex',
+                                                                    justifyContent: 'space-between',
+                                                                    alignItems: 'center',
+                                                                    cursor: 'pointer',
+                                                                    backgroundColor: isCompanyExpanded ? 'rgba(232, 133, 12, 0.04)' : 'transparent',
+                                                                    transition: 'background-color 0.2s',
+                                                                }}
+                                                                onMouseEnter={(e) => {
+                                                                    if (!isCompanyExpanded) e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.02)';
+                                                                }}
+                                                                onMouseLeave={(e) => {
+                                                                    if (!isCompanyExpanded) e.currentTarget.style.backgroundColor = 'transparent';
+                                                                }}
+                                                            >
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                                                                    {/* Chevron */}
+                                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={COLORS.textMedium} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.2s', transform: isCompanyExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>
+                                                                        <polyline points="9 18 15 12 9 6"></polyline>
+                                                                    </svg>
+                                                                    <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                                                                        <span style={{ fontSize: '13px', fontWeight: '600', color: COLORS.textDark, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                                                            {emp.nome}
+                                                                        </span>
+                                                                        {emp.cnpj_cpf && (
+                                                                            <span style={{ fontSize: '10px', color: COLORS.textLight }}>
+                                                                                CNPJ/CPF: {emp.cnpj_cpf}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                <span style={{ fontSize: '13px', fontWeight: 'bold', color: COLORS.textDark }}>
+                                                                    {formatCurrency(emp.valor)}
+                                                                </span>
+                                                            </div>
+
+                                                            {/* Company Invoices / Documents Expanded List */}
+                                                            {isCompanyExpanded && (
+                                                                <div style={{
+                                                                    padding: '8px 12px 12px',
+                                                                    borderTop: `1px solid ${COLORS.borderLight}`,
+                                                                    backgroundColor: '#ffffff',
+                                                                    display: 'flex',
+                                                                    flexDirection: 'column',
+                                                                    gap: '8px'
+                                                                }}>
+                                                                    <div style={{
+                                                                        display: 'grid',
+                                                                        gridTemplateColumns: '80px 1fr 100px 80px',
+                                                                        gap: '8px',
+                                                                        borderBottom: `1px solid ${COLORS.borderLight}`,
+                                                                        paddingBottom: '4px',
+                                                                        fontSize: '10px',
+                                                                        fontWeight: 'bold',
+                                                                        color: COLORS.textLight,
+                                                                        textTransform: 'uppercase'
+                                                                    }}>
+                                                                        <span>Data</span>
+                                                                        <span>Nº Doc.</span>
+                                                                        <span style={{ textAlign: 'right' }}>Valor</span>
+                                                                        <span style={{ textAlign: 'center' }}>Doc</span>
+                                                                    </div>
+                                                                    {emp.despesas && emp.despesas.map((desp, despIdx) => {
+                                                                        let formattedDate = desp.data;
+                                                                        if (desp.data) {
+                                                                            const parts = desp.data.split('-');
+                                                                            if (parts.length === 3) {
+                                                                                formattedDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                                                                            }
+                                                                        } else {
+                                                                            formattedDate = '—';
+                                                                        }
+
+                                                                        return (
+                                                                            <div
+                                                                                key={despIdx}
+                                                                                style={{
+                                                                                    display: 'grid',
+                                                                                    gridTemplateColumns: '80px 1fr 100px 80px',
+                                                                                    gap: '8px',
+                                                                                    alignItems: 'center',
+                                                                                    fontSize: '12px',
+                                                                                    color: COLORS.textDark,
+                                                                                    padding: '4px 0',
+                                                                                    borderBottom: despIdx < emp.despesas.length - 1 ? '1px dashed #f3f4f6' : 'none'
+                                                                                }}
+                                                                            >
+                                                                                <span style={{ color: COLORS.textMedium }}>{formattedDate}</span>
+                                                                                <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={desp.num_documento}>
+                                                                                    {desp.num_documento || '—'}
+                                                                                </span>
+                                                                                <span style={{ textAlign: 'right', fontWeight: '600' }}>
+                                                                                    {formatCurrency(desp.valor)}
+                                                                                </span>
+                                                                                <span style={{ textAlign: 'center' }}>
+                                                                                    {desp.url_documento ? (
+                                                                                        <a
+                                                                                            href={desp.url_documento}
+                                                                                            target="_blank"
+                                                                                            rel="noopener noreferrer"
+                                                                                            style={{
+                                                                                                color: COLORS.orange,
+                                                                                                textDecoration: 'none',
+                                                                                                fontWeight: 'bold',
+                                                                                                display: 'inline-flex',
+                                                                                                alignItems: 'center',
+                                                                                                gap: '2px',
+                                                                                                transition: 'opacity 0.2s'
+                                                                                            }}
+                                                                                            onMouseEnter={(e) => e.currentTarget.style.opacity = 0.7}
+                                                                                            onMouseLeave={(e) => e.currentTarget.style.opacity = 1}
+                                                                                            onClick={(e) => e.stopPropagation()}
+                                                                                        >
+                                                                                            Nota
+                                                                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                                                                                <polyline points="15 3 21 3 21 9"></polyline>
+                                                                                                <line x1="10" y1="14" x2="21" y2="3"></line>
+                                                                                            </svg>
+                                                                                        </a>
+                                                                                    ) : (
+                                                                                        <span style={{ color: COLORS.textLight }}>—</span>
+                                                                                    )}
+                                                                                </span>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })
+                                            ) : (
+                                                <div style={{ padding: '10px', fontSize: '12px', color: COLORS.textMedium, fontStyle: 'italic', textAlign: 'center' }}>
+                                                    Nenhum detalhamento de fornecedor disponível.
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}

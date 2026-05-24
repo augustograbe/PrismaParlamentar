@@ -11,7 +11,7 @@ import logo from '../../assets/logo.png';
  * - deputyList: array de deputados para autocomplete na SearchBar
  * - onSelectDeputy: callback quando um deputado é selecionado na pesquisa
  */
-export default function TopBar({ deputyList = [], onSelectDeputy, activePage = 'grafos' }) {
+export default function TopBar({ deputyList = [], onSelectDeputy, onSelectProfile, activePage = 'grafos' }) {
     const navigate = useNavigate();
     const barStyle = {
         position: 'fixed',
@@ -131,6 +131,7 @@ export default function TopBar({ deputyList = [], onSelectDeputy, activePage = '
                     placeholder="Pesquisar deputado"
                     suggestions={deputyList}
                     onSelectSuggestion={onSelectDeputy}
+                    onSelectProfile={onSelectProfile}
                 />
             </div>
 

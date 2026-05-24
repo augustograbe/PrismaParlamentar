@@ -124,7 +124,7 @@ function getNodeColor(deputy, separateBy, graphType, dynamicCommunityMap = null,
  * - selectedNode: id do nó selecionado (string | null)
  * - onNodeClick: callback quando um nó é clicado
  */
-export default function GraphContainer({ filters, graphType = 'similaridade', selectedNode, onNodeClick, onDeputiesLoaded, onMaxCoautoriaLoaded, onVisibleStatsChanged, pinnedIds = [], highlightPinned = true, hoveredLegendGroup = null, hoveredBarGroup = null, hoveredConnectionNode = null, recalcKey = 0, onLayoutReady }) {
+export default function GraphContainer({ filters, graphType = 'similaridade', selectedNode, selectedDeputy, onNodeClick, onDeputiesLoaded, onMaxCoautoriaLoaded, onVisibleStatsChanged, pinnedIds = [], highlightPinned = true, hoveredLegendGroup = null, hoveredBarGroup = null, hoveredConnectionNode = null, recalcKey = 0, onLayoutReady }) {
     const graph = useMemo(() => new Graph(), []);
     const sigmaRef = useRef(null);
     const [dataLoaded, setDataLoaded] = useState(false);
@@ -749,11 +749,25 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
                     });
                 });
 
-                onNodeClick({ ...dep, nodeColor: color, nodeId, conexoes, maxConexoes, connectionBreakdown, connectionsList });
+                onNodeClick({ ...dep, nodeColor: color, nodeId, conexoes, maxConexoes, connectionBreakdown, connectionsList, graphType });
             }
         },
         [graph, onNodeClick, filters, graphType, dynamicCommunities],
     );
+
+    useEffect(() => {
+        if (selectedNode && dataLoaded && !isComputing) {
+            const isFullyLoaded = selectedDeputy &&
+                String(selectedDeputy.id) === selectedNode &&
+                selectedDeputy.connectionsList !== undefined &&
+                selectedDeputy.nodeColor !== undefined &&
+                selectedDeputy.graphType === graphType;
+
+            if (!isFullyLoaded && graph.hasNode(selectedNode)) {
+                handleNodeClick(selectedNode);
+            }
+        }
+    }, [selectedNode, selectedDeputy, dataLoaded, isComputing, graph, graphType, handleNodeClick]);
 
     const loadingOverlayStyle = {
         position: 'absolute',

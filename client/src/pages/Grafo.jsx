@@ -201,6 +201,17 @@ export default function Grafo() {
         });
     }, []);
 
+    // Quando o botão "Perfil" é clicado na pesquisa do TopBar,
+    // abre o perfil diretamente sem carregar o card no grafo
+    const handleSearchSelectProfile = useCallback((dep) => {
+        const color = PARTY_COLORS[dep.sigla_partido || dep.partido] || COLORS.textMedium;
+        setProfileDeputy({
+            ...dep,
+            nodeColor: color,
+        });
+        setSelectedDeputy(null);
+    }, []);
+
     // Quando um deputado fixado é clicado na lista
     const handleSelectPinned = useCallback((pinnedDep) => {
         // Tentar encontrar dados completos na deputyList
@@ -252,6 +263,7 @@ export default function Grafo() {
                 filters={filters}
                 graphType={graphType}
                 selectedNode={selectedDeputy ? String(selectedDeputy.nodeId || selectedDeputy.id) : null}
+                selectedDeputy={selectedDeputy}
                 onNodeClick={handleNodeClick}
                 onDeputiesLoaded={handleDeputiesLoaded}
                 onMaxCoautoriaLoaded={handleMaxCoautoriaLoaded}
@@ -268,6 +280,7 @@ export default function Grafo() {
             <TopBar
                 deputyList={deputyList}
                 onSelectDeputy={handleSearchSelectDeputy}
+                onSelectProfile={handleSearchSelectProfile}
                 activePage="grafos"
             />
 

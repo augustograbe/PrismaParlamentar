@@ -204,8 +204,11 @@ export default function DeputyCard({
         color: COLORS.textMedium,
     };
 
+    const partyKey = deputy.sigla_partido || deputy.partido || 'OUTROS';
+    const partyColor = PARTY_COLORS[partyKey] || COLORS.textMedium;
+
     const badgeStyle = {
-        backgroundColor: headerColor,
+        backgroundColor: partyColor,
         color: COLORS.partyBadgeText,
         padding: `1px ${SPACING.sm}`,
         borderRadius: SPACING.radiusSm,

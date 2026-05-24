@@ -88,16 +88,98 @@ class DeputadoViewSet(viewsets.ReadOnlyModelViewSet):
         gastos_mensais_raw = despesas_ano.values('mes').annotate(total=models.Sum('valor_liquido')).order_by('mes')
         gastos_mensais_map = {item['mes']: float(item['total']) for item in gastos_mensais_raw}
         
-        detalhes_mensais_raw = despesas_ano.values('mes', 'tipo_despesa').annotate(total=models.Sum('valor_liquido')).order_by('mes', '-total')
-        detalhes_ano_raw = despesas_ano.values('tipo_despesa').annotate(total=models.Sum('valor_liquido')).order_by('-total')
+        all_despesas_ano = list(despesas_ano.only(
+            'tipo_despesa', 'nome_fornecedor', 'cnpj_cpf_fornecedor',
+            'valor_liquido', 'data_documento', 'num_documento', 'url_documento', 'mes'
+        ))
         
+        # Grouping in memory for year aggregate
+        grouped_ano = {}
+        for d in all_despesas_ano:
+            tipo = d.tipo_despesa
+            fornecedor_nome = d.nome_fornecedor or "Não Identificado"
+            fornecedor_cnpj = d.cnpj_cpf_fornecedor or ""
+            valor = float(d.valor_liquido)
+            
+            if tipo not in grouped_ano:
+                grouped_ano[tipo] = {
+                    'tipo': tipo,
+                    'valor': 0.0,
+                    'fornecedores_map': {}
+                }
+            
+            grouped_ano[tipo]['valor'] += valor
+            
+            forn_key = (fornecedor_cnpj, fornecedor_nome)
+            if forn_key not in grouped_ano[tipo]['fornecedores_map']:
+                grouped_ano[tipo]['fornecedores_map'][forn_key] = {
+                    'nome': fornecedor_nome,
+                    'cnpj_cpf': fornecedor_cnpj,
+                    'valor': 0.0,
+                    'despesas': []
+                }
+            
+            grouped_ano[tipo]['fornecedores_map'][forn_key]['valor'] += valor
+            grouped_ano[tipo]['fornecedores_map'][forn_key]['despesas'].append({
+                'id': d.id,
+                'data': d.data_documento.strftime('%Y-%m-%d') if d.data_documento else None,
+                'valor': valor,
+                'num_documento': d.num_documento,
+                'url_documento': d.url_documento
+            })
+
         detalhes_ano = []
-        for item in detalhes_ano_raw:
-            val = float(item['total'])
+        for tipo, data in grouped_ano.items():
+            fornecedores_list = []
+            for forn_key, forn_data in data['fornecedores_map'].items():
+                forn_data['despesas'].sort(key=lambda x: x['data'] or '', reverse=True)
+                fornecedores_list.append(forn_data)
+            
+            fornecedores_list.sort(key=lambda x: x['valor'], reverse=True)
+            
             detalhes_ano.append({
-                'tipo': item['tipo_despesa'],
-                'valor': val,
-                'percentual': (val / total_gasto_ano) * 100 if total_gasto_ano > 0 else 0
+                'tipo': tipo,
+                'valor': data['valor'],
+                'percentual': (data['valor'] / total_gasto_ano) * 100 if total_gasto_ano > 0 else 0,
+                'empresas': fornecedores_list
+            })
+        
+        detalhes_ano.sort(key=lambda x: x['valor'], reverse=True)
+
+        # Grouping in memory for month-by-month
+        grouped_mensal = {m: {} for m in range(1, 13)}
+        for d in all_despesas_ano:
+            m = d.mes
+            tipo = d.tipo_despesa
+            fornecedor_nome = d.nome_fornecedor or "Não Identificado"
+            fornecedor_cnpj = d.cnpj_cpf_fornecedor or ""
+            valor = float(d.valor_liquido)
+            
+            if tipo not in grouped_mensal[m]:
+                grouped_mensal[m][tipo] = {
+                    'tipo': tipo,
+                    'valor': 0.0,
+                    'fornecedores_map': {}
+                }
+                
+            grouped_mensal[m][tipo]['valor'] += valor
+            
+            forn_key = (fornecedor_cnpj, fornecedor_nome)
+            if forn_key not in grouped_mensal[m][tipo]['fornecedores_map']:
+                grouped_mensal[m][tipo]['fornecedores_map'][forn_key] = {
+                    'nome': fornecedor_nome,
+                    'cnpj_cpf': fornecedor_cnpj,
+                    'valor': 0.0,
+                    'despesas': []
+                }
+                
+            grouped_mensal[m][tipo]['fornecedores_map'][forn_key]['valor'] += valor
+            grouped_mensal[m][tipo]['fornecedores_map'][forn_key]['despesas'].append({
+                'id': d.id,
+                'data': d.data_documento.strftime('%Y-%m-%d') if d.data_documento else None,
+                'valor': valor,
+                'num_documento': d.num_documento,
+                'url_documento': d.url_documento
             })
             
         gastos_por_mes = []
@@ -105,15 +187,23 @@ class DeputadoViewSet(viewsets.ReadOnlyModelViewSet):
             total_mes = gastos_mensais_map.get(m, 0.0)
             
             detalhes_mes = []
-            for item in detalhes_mensais_raw:
-                if item['mes'] == m:
-                    val = float(item['total'])
-                    detalhes_mes.append({
-                        'tipo': item['tipo_despesa'],
-                        'valor': val,
-                        'percentual': (val / total_mes) * 100 if total_mes > 0 else 0
-                    })
-                    
+            for tipo, data in grouped_mensal[m].items():
+                fornecedores_list = []
+                for forn_key, forn_data in data['fornecedores_map'].items():
+                    forn_data['despesas'].sort(key=lambda x: x['data'] or '', reverse=True)
+                    fornecedores_list.append(forn_data)
+                
+                fornecedores_list.sort(key=lambda x: x['valor'], reverse=True)
+                
+                detalhes_mes.append({
+                    'tipo': tipo,
+                    'valor': data['valor'],
+                    'percentual': (data['valor'] / total_mes) * 100 if total_mes > 0 else 0,
+                    'empresas': fornecedores_list
+                })
+                
+            detalhes_mes.sort(key=lambda x: x['valor'], reverse=True)
+            
             gastos_por_mes.append({
                 'mes': m,
                 'total': total_mes,

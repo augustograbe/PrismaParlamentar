@@ -383,6 +383,7 @@ export default function Deputados() {
             <TopBar
                 deputyList={allDeputies}
                 onSelectDeputy={handleSearchSelectDeputy}
+                onSelectProfile={handleSearchSelectDeputy}
                 activePage="lista"
             />
 

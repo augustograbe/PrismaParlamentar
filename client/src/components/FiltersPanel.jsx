@@ -27,6 +27,29 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
     const [backboneEnabled, setBackboneEnabled] = useState(false);
     const [backboneMethod, setBackboneMethod] = useState('high_salience_skeleton');
 
+    const [expenseCategories, setExpenseCategories] = useState([]);
+    const [selectedExpenseCategory, setSelectedExpenseCategory] = useState('Todas');
+    const [selectedExpenseYear, setSelectedExpenseYear] = useState('mandato');
+
+    useEffect(() => {
+        let isMounted = true;
+        async function fetchCategories() {
+            try {
+                const res = await fetch('http://localhost:8000/api/despesas-categorias/');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (isMounted) {
+                        setExpenseCategories(data);
+                    }
+                }
+            } catch (err) {
+                console.error("Erro ao carregar categorias de despesas:", err);
+            }
+        }
+        fetchCategories();
+        return () => { isMounted = false; };
+    }, []);
+
     useEffect(() => {
         setCoautoria({ min: 1, max: maxCoautoriaLimit });
     }, [maxCoautoriaLimit]);
@@ -47,6 +70,7 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
         { value: 'padrao', label: 'Padrão' },
         { value: 'presenca', label: 'Presença' },
         { value: 'conexoes', label: 'Conexões' },
+        { value: 'despesas', label: 'Despesas' },
     ];
 
     const layoutOptions = [
@@ -98,6 +122,8 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
                 voteSimilarity,
                 coautoria,
                 vertexSize,
+                expenseCategory: selectedExpenseCategory,
+                expenseYear: selectedExpenseYear,
                 graphLayout,
                 communityAlgorithm,
                 backboneEnabled,
@@ -238,6 +264,62 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
                     onChange={(e) => setVertexSize(e.target.value)}
                     style={{ flexDirection: 'column', alignItems: 'flex-start', gap: SPACING.sm }}
                 />
+                {vertexSize === 'despesas' && (
+                    <div style={{
+                        display: 'flex',
+                        gap: SPACING.xs,
+                        marginTop: SPACING.sm,
+                        width: '100%'
+                    }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+                            <label style={{ fontSize: '10px', color: COLORS.textLight, marginBottom: '2px', fontWeight: 'bold' }}>Categoria</label>
+                            <select
+                                value={selectedExpenseCategory}
+                                onChange={(e) => setSelectedExpenseCategory(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '4px 6px',
+                                    fontSize: '11px',
+                                    border: `1px solid ${COLORS.borderMedium}`,
+                                    borderRadius: '4px',
+                                    backgroundColor: COLORS.white,
+                                    color: COLORS.textDark,
+                                    outline: 'none',
+                                    height: '26px'
+                                }}
+                            >
+                                <option value="Todas">Todas</option>
+                                {expenseCategories.map((cat, idx) => (
+                                    <option key={idx} value={cat}>{cat}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', width: '90px', flexShrink: 0 }}>
+                            <label style={{ fontSize: '10px', color: COLORS.textLight, marginBottom: '2px', fontWeight: 'bold' }}>Ano</label>
+                            <select
+                                value={selectedExpenseYear}
+                                onChange={(e) => setSelectedExpenseYear(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '4px 6px',
+                                    fontSize: '11px',
+                                    border: `1px solid ${COLORS.borderMedium}`,
+                                    borderRadius: '4px',
+                                    backgroundColor: COLORS.white,
+                                    color: COLORS.textDark,
+                                    outline: 'none',
+                                    height: '26px'
+                                }}
+                            >
+                                <option value="mandato">mandato</option>
+                                <option value="2026">2026</option>
+                                <option value="2025">2025</option>
+                                <option value="2024">2024</option>
+                                <option value="2023">2023</option>
+                            </select>
+                        </div>
+                    </div>
+                )}
             </PanelSection>
 
             <div style={{ borderBottom: `1px solid ${COLORS.borderLight}` }}>

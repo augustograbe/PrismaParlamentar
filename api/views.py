@@ -346,3 +346,35 @@ class BackboneArestaViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(legislatura=int(legislatura))
 
         return queryset
+
+
+class DeputadoDespesasTotaisView(APIView):
+    def get(self, request):
+        from deputados.models import Despesa
+        from django.db.models import Sum
+        
+        ano = request.query_params.get('ano', '')
+        categoria = request.query_params.get('categoria', '')
+        
+        qs = Despesa.objects.all()
+        
+        if ano and ano != 'mandato':
+            try:
+                qs = qs.filter(ano=int(ano))
+            except ValueError:
+                pass
+                
+        if categoria and categoria != 'Todas':
+            qs = qs.filter(tipo_despesa=categoria)
+            
+        aggregates = qs.values('deputado_id').annotate(total=Sum('valor_liquido'))
+        
+        resultado = {str(item['deputado_id']): float(item['total']) for item in aggregates}
+        return Response(resultado)
+
+
+class DespesasCategoriasView(APIView):
+    def get(self, request):
+        from deputados.models import Despesa
+        categorias = Despesa.objects.values_list('tipo_despesa', flat=True).distinct().order_by('tipo_despesa')
+        return Response(list(categorias))

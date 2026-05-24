@@ -136,6 +136,7 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
     const computeIdRef = useRef(0);
     const communityCacheRef = useRef({});
     const [dynamicCommunities, setDynamicCommunities] = useState(null);
+    const [expenseTotals, setExpenseTotals] = useState(null);
     const lastBackboneKeyRef = useRef(null); // tracks backbone state to detect changes
 
     // Inicializar o grafo uma vez buscando deputados da API
@@ -296,6 +297,38 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
         loadCommunities();
         return () => { isMounted = false; };
     }, [dataLoaded, graphType, filters]);
+
+    useEffect(() => {
+        if (!dataLoaded || filters?.vertexSize !== 'despesas') {
+            setExpenseTotals(null);
+            return;
+        }
+
+        let isMounted = true;
+        const category = filters.expenseCategory || 'Todas';
+        const year = filters.expenseYear || 'mandato';
+        const query = new URLSearchParams({
+            categoria: category,
+            ano: year
+        });
+
+        async function loadExpenses() {
+            try {
+                const res = await fetch(`http://localhost:8000/api/deputados-despesas-totais/?${query.toString()}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (isMounted) {
+                        setExpenseTotals(data);
+                    }
+                }
+            } catch (err) {
+                console.error("Erro ao carregar despesas totais para tamanho de vértice:", err);
+            }
+        }
+
+        loadExpenses();
+        return () => { isMounted = false; };
+    }, [dataLoaded, filters?.vertexSize, filters?.expenseCategory, filters?.expenseYear]);
 
     // Função para aplicar layout ao grafo com progresso
     const applyLayout = useCallback((layoutType) => {
@@ -523,6 +556,35 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
                     graph.setNodeAttribute(nodeId, 'size', size);
                 });
             }
+        } else if (vertexSize === 'despesas' && expenseTotals) {
+            // Tamanho proporcional à despesa acumulada do deputado
+            let minExpense = Infinity;
+            let maxExpense = -Infinity;
+
+            graph.forEachNode((nodeId) => {
+                if (graph.getNodeAttribute(nodeId, 'hidden')) return;
+                const total = expenseTotals[nodeId] || 0;
+                if (total < minExpense) minExpense = total;
+                if (total > maxExpense) maxExpense = total;
+            });
+
+            if (minExpense === Infinity || maxExpense === minExpense) {
+                graph.forEachNode((nodeId) => {
+                    graph.setNodeAttribute(nodeId, 'size', DEFAULT_SIZE);
+                });
+            } else {
+                const range = maxExpense - minExpense;
+                graph.forEachNode((nodeId) => {
+                    if (graph.getNodeAttribute(nodeId, 'hidden')) {
+                        graph.setNodeAttribute(nodeId, 'size', DEFAULT_SIZE);
+                        return;
+                    }
+                    const total = expenseTotals[nodeId] || 0;
+                    const normalized = (total - minExpense) / range;
+                    const size = MIN_SIZE + normalized * (MAX_SIZE - MIN_SIZE);
+                    graph.setNodeAttribute(nodeId, 'size', size);
+                });
+            }
         }
 
         // Aplicar layout se mudou
@@ -575,7 +637,7 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
             });
             onVisibleStatsChanged({ separateBy, groupCounts, groupColors, totalVisible });
         }
-    }, [graph, filters, dataLoaded, applyLayout, graphType, edgesVersion, onVisibleStatsChanged, dynamicCommunities]);
+    }, [graph, filters, dataLoaded, applyLayout, graphType, edgesVersion, onVisibleStatsChanged, dynamicCommunities, expenseTotals]);
 
     useEffect(() => {
         applyFilters();

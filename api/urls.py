@@ -7,6 +7,8 @@ from .views import (
     ComunidadesVotosView,
     DeputadoViewSet,
     GrafoArestaViewSet,
+    DeputadoDespesasTotaisView,
+    DespesasCategoriasView,
 )
 
 router = DefaultRouter()
@@ -18,5 +20,7 @@ router.register(r'arestas-backbone', BackboneArestaViewSet, basename='arestas-ba
 urlpatterns = [
     path('comunidades-votos/', ComunidadesVotosView.as_view(), name='comunidades-votos'),
     path('comunidades-coautoria/', ComunidadesCoautoriaView.as_view(), name='comunidades-coautoria'),
+    path('deputados-despesas-totais/', DeputadoDespesasTotaisView.as_view(), name='deputados-despesas-totais'),
+    path('despesas-categorias/', DespesasCategoriasView.as_view(), name='despesas-categorias'),
     path('', include(router.urls)),
 ]

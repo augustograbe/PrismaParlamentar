@@ -26,6 +26,9 @@ const ALL_FIELD_OPTIONS = [
     { value: 'municipio_nascimento', label: 'Município Nasc.' },
     { value: 'uf_nascimento', label: 'UF Nasc.' },
     { value: 'data_nascimento', label: 'Data Nasc.' },
+    { value: 'despesas', label: 'Despesas' },
+    { value: 'discursos', label: 'Discursos' },
+    { value: 'proposicoes', label: 'Proposições' },
 ];
 
 export default function FieldsPanel({ selectedFields, onFieldsChange, isMinimized, onToggleMinimize }) {

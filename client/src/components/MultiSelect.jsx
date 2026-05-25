@@ -24,6 +24,20 @@ export default function MultiSelect({
     const containerRef = useRef(null);
     const buttonRef = useRef(null);
     const dropdownRef = useRef(null);
+    const [expenseCategories, setExpenseCategories] = useState([]);
+    const [hoveredItem, setHoveredItem] = useState(null);
+
+    // Fetch expense categories on mount
+    useEffect(() => {
+        let isMounted = true;
+        fetch('http://localhost:8000/api/despesas-categorias/')
+            .then(res => res.ok ? res.json() : null)
+            .then(data => {
+                if (data && isMounted) setExpenseCategories(data);
+            })
+            .catch(err => console.error("Erro ao carregar categorias em MultiSelect:", err));
+        return () => { isMounted = false; };
+    }, []);
 
     // Close dropdown on outside click
     useEffect(() => {
@@ -112,8 +126,7 @@ export default function MultiSelect({
         borderRadius: SPACING.radiusMd,
         boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
         zIndex: 1000,
-        maxHeight: '220px',
-        overflow: 'auto',
+        overflow: 'visible',
     };
 
     const dropdownItemStyle = {
@@ -184,17 +197,106 @@ export default function MultiSelect({
             {/* Dropdown — rendered with position:fixed to escape overflow:hidden parents */}
             {isOpen && availableOptions.length > 0 && (
                 <div ref={dropdownRef} style={dropdownStyle}>
-                    {availableOptions.map((opt) => (
-                        <div
-                            key={opt.value}
-                            style={dropdownItemStyle}
-                            onClick={() => handleAdd(opt.value)}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                        >
-                            {opt.label}
-                        </div>
-                    ))}
+                    {availableOptions.map((opt) => {
+                        const hasSubmenu = opt.value === 'despesas' || opt.value === 'proposicoes';
+                        const isHovered = hoveredItem === opt.value;
+
+                        return (
+                            <div
+                                key={opt.value}
+                                style={{ ...dropdownItemStyle, position: 'relative' }}
+                                onClick={() => !hasSubmenu && handleAdd(opt.value)}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#f5f5f5';
+                                    setHoveredItem(opt.value);
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                    setHoveredItem(null);
+                                }}
+                            >
+                                {hasSubmenu ? (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                        <span>{opt.label}</span>
+                                        <span style={{ color: COLORS.orange, fontWeight: 'bold', fontSize: '12px', marginLeft: '6px' }}>‹</span>
+                                    </div>
+                                ) : opt.label}
+
+                                {isHovered && opt.value === 'despesas' && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        right: '100%',
+                                        marginRight: '0px',
+                                        width: '220px',
+                                        maxHeight: '200px',
+                                        overflowY: 'auto',
+                                        backgroundColor: COLORS.white,
+                                        border: `1px solid ${COLORS.borderMedium}`,
+                                        borderRadius: SPACING.radiusMd,
+                                        boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+                                        zIndex: 1010,
+                                    }}>
+                                        <div
+                                            style={{ ...dropdownItemStyle, fontWeight: 'bold', borderBottom: `1px solid ${COLORS.borderLight}` }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleAdd('despesas');
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        >
+                                            Todas
+                                        </div>
+                                        {expenseCategories.map((cat) => (
+                                            <div
+                                                key={cat}
+                                                style={dropdownItemStyle}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleAdd('despesas__' + cat);
+                                                }}
+                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                            >
+                                                {cat}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {isHovered && opt.value === 'proposicoes' && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        right: '100%',
+                                        marginRight: '0px',
+                                        width: '180px',
+                                        backgroundColor: COLORS.white,
+                                        border: `1px solid ${COLORS.borderMedium}`,
+                                        borderRadius: SPACING.radiusMd,
+                                        boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+                                        zIndex: 1010,
+                                    }}>
+                                        {['PL+PLP+PEC', 'PL', 'PLP', 'PEC'].map((type) => (
+                                            <div
+                                                key={type}
+                                                style={dropdownItemStyle}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleAdd('proposicoes__' + type);
+                                                }}
+                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                            >
+                                                {type}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
             )}
 

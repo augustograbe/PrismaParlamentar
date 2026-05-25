@@ -43,6 +43,14 @@ export default function Deputados() {
     const [profileDeputy, setProfileDeputy] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [openPanel, setOpenPanel] = useState('filtros');
+    const [speechTotals, setSpeechTotals] = useState({});
+    const [proposalTotals, setProposalTotals] = useState({});
+    const [expenseTotals, setExpenseTotals] = useState({});
+    const [expenseCategories, setExpenseCategories] = useState([]);
+    const [selectedExpenseCategory, setSelectedExpenseCategory] = useState('Todas');
+    const [selectedExpenseYear, setSelectedExpenseYear] = useState('mandato');
+    const [selectedProposalType, setSelectedProposalType] = useState('PL+PLP+PEC');
+    const [dynamicFieldTotals, setDynamicFieldTotals] = useState({});
 
     // Filters
     const [filters, setFilters] = useState({
@@ -82,6 +90,131 @@ export default function Deputados() {
         load();
         return () => { isMounted = false; };
     }, []);
+
+    // Fetch expense categories on mount
+    useEffect(() => {
+        let isMounted = true;
+        async function fetchCategories() {
+            try {
+                const res = await fetch('http://localhost:8000/api/despesas-categorias/');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (isMounted) {
+                        setExpenseCategories(data);
+                    }
+                }
+            } catch (err) {
+                console.error("Erro ao carregar categorias de despesas:", err);
+            }
+        }
+        fetchCategories();
+        return () => { isMounted = false; };
+    }, []);
+
+    // Fetch discursos aggregates from API
+    useEffect(() => {
+        let isMounted = true;
+        async function loadSpeeches() {
+            try {
+                const res = await fetch('http://localhost:8000/api/deputados-discursos-totais/');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (isMounted) {
+                        setSpeechTotals(data);
+                    }
+                }
+            } catch (err) {
+                console.error("Erro ao carregar discursos totais para a lista:", err);
+            }
+        }
+        loadSpeeches();
+        return () => { isMounted = false; };
+    }, []);
+
+    // Fetch despesas aggregates from API (reacts to category and year)
+    useEffect(() => {
+        let isMounted = true;
+        const query = new URLSearchParams({
+            categoria: selectedExpenseCategory,
+            ano: selectedExpenseYear
+        });
+        async function loadExpenses() {
+            try {
+                const res = await fetch(`http://localhost:8000/api/deputados-despesas-totais/?${query.toString()}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (isMounted) {
+                        setExpenseTotals(data);
+                    }
+                }
+            } catch (err) {
+                console.error("Erro ao carregar despesas totais para a lista:", err);
+            }
+        }
+        loadExpenses();
+        return () => { isMounted = false; };
+    }, [selectedExpenseCategory, selectedExpenseYear]);
+
+    // Fetch proposicoes aggregates from API (reacts to proposal type)
+    useEffect(() => {
+        let isMounted = true;
+        const query = new URLSearchParams({
+            tipo: selectedProposalType
+        });
+        async function loadProposals() {
+            try {
+                const res = await fetch(`http://localhost:8000/api/deputados-proposicoes-totais/?${query.toString()}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (isMounted) {
+                        setProposalTotals(data);
+                    }
+                }
+            } catch (err) {
+                console.error("Erro ao carregar proposições totais para a lista:", err);
+            }
+        }
+        loadProposals();
+        return () => { isMounted = false; };
+    }, [selectedProposalType]);
+
+    // Fetch dynamic totals on demand for custom hovered submenu columns
+    useEffect(() => {
+        let isMounted = true;
+        
+        selectedFields.forEach((field) => {
+            if (dynamicFieldTotals[field]) return; // already loaded
+
+            if (field.startsWith('despesas__')) {
+                const category = field.replace('despesas__', '');
+                const query = new URLSearchParams({ categoria: category });
+                
+                fetch(`http://localhost:8000/api/deputados-despesas-totais/?${query.toString()}`)
+                    .then(res => res.ok ? res.json() : null)
+                    .then(data => {
+                        if (data && isMounted) {
+                            setDynamicFieldTotals(prev => ({ ...prev, [field]: data }));
+                        }
+                    })
+                    .catch(err => console.error(`Erro ao carregar despesas para campo ${field}:`, err));
+            } else if (field.startsWith('proposicoes__')) {
+                const type = field.replace('proposicoes__', '');
+                const query = new URLSearchParams({ tipo: type });
+                
+                fetch(`http://localhost:8000/api/deputados-proposicoes-totais/?${query.toString()}`)
+                    .then(res => res.ok ? res.json() : null)
+                    .then(data => {
+                        if (data && isMounted) {
+                            setDynamicFieldTotals(prev => ({ ...prev, [field]: data }));
+                        }
+                    })
+                    .catch(err => console.error(`Erro ao carregar proposições para campo ${field}:`, err));
+            }
+        });
+
+        return () => { isMounted = false; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedFields]);
 
     // Apply filters
     const filteredDeputies = useMemo(() => {
@@ -124,13 +257,25 @@ export default function Deputados() {
                     va = a.presenca ?? -1;
                     vb = b.presenca ?? -1;
                     return asc ? va - vb : vb - va;
+                case 'despesas':
+                    va = expenseTotals[a.id] || 0;
+                    vb = expenseTotals[b.id] || 0;
+                    return asc ? va - vb : vb - va;
+                case 'discursos':
+                    va = speechTotals[a.id] || 0;
+                    vb = speechTotals[b.id] || 0;
+                    return asc ? va - vb : vb - va;
+                case 'proposicoes':
+                    va = proposalTotals[a.id] || 0;
+                    vb = proposalTotals[b.id] || 0;
+                    return asc ? va - vb : vb - va;
                 default:
                     return 0;
             }
         });
 
         return list;
-    }, [filteredDeputies, sortBy]);
+    }, [filteredDeputies, sortBy, expenseTotals, speechTotals, proposalTotals]);
 
     // Pagination
     const totalPages = Math.max(1, Math.ceil(sortedDeputies.length / PAGE_SIZE));
@@ -267,6 +412,26 @@ export default function Deputados() {
 
     // Render cell value
     const renderCell = (dep, field) => {
+        if (field === 'despesas') {
+            const total = expenseTotals[dep.id] || 0;
+            return `R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+        if (field === 'discursos') {
+            return String(speechTotals[dep.id] || 0);
+        }
+        if (field === 'proposicoes') {
+            return String(proposalTotals[dep.id] || 0);
+        }
+        if (field.startsWith('despesas__')) {
+            const totals = dynamicFieldTotals[field] || {};
+            const total = totals[dep.id] || 0;
+            return `R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+        if (field.startsWith('proposicoes__')) {
+            const totals = dynamicFieldTotals[field] || {};
+            return String(totals[dep.id] || 0);
+        }
+
         const val = dep[field];
         if (val === null || val === undefined) return '—';
 
@@ -409,11 +574,25 @@ export default function Deputados() {
                                 <thead>
                                     <tr>
                                         <th style={{ ...thStyle, textAlign: 'center', width: '44px' }}>#</th>
-                                        {selectedFields.map((field) => (
-                                            <th key={field} style={thStyle}>
-                                                {FIELD_LABELS[field] || field}
-                                            </th>
-                                        ))}
+                                        {selectedFields.map((field) => {
+                                            let label = FIELD_LABELS[field];
+                                            if (!label) {
+                                                if (field.startsWith('despesas__')) {
+                                                    const cat = field.replace('despesas__', '');
+                                                    label = `Despesas (${cat})`;
+                                                } else if (field.startsWith('proposicoes__')) {
+                                                    const type = field.replace('proposicoes__', '');
+                                                    label = `Proposições (${type})`;
+                                                } else {
+                                                    label = field;
+                                                }
+                                            }
+                                            return (
+                                                <th key={field} style={thStyle}>
+                                                    {label}
+                                                </th>
+                                            );
+                                        })}
                                         <th style={{ ...thStyle, textAlign: 'center', width: '50px' }}>
                                             <Pin size={14} color={COLORS.textMedium} />
                                         </th>
@@ -546,6 +725,13 @@ export default function Deputados() {
                     <RankingPanel
                         sortBy={sortBy}
                         onSortChange={(e) => setSortBy(e.target.value)}
+                        expenseCategories={expenseCategories}
+                        selectedExpenseCategory={selectedExpenseCategory}
+                        onExpenseCategoryChange={setSelectedExpenseCategory}
+                        selectedExpenseYear={selectedExpenseYear}
+                        onExpenseYearChange={setSelectedExpenseYear}
+                        selectedProposalType={selectedProposalType}
+                        onProposalTypeChange={setSelectedProposalType}
                     />
                 </div>
 

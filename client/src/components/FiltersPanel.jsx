@@ -30,6 +30,7 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
     const [expenseCategories, setExpenseCategories] = useState([]);
     const [selectedExpenseCategory, setSelectedExpenseCategory] = useState('Todas');
     const [selectedExpenseYear, setSelectedExpenseYear] = useState('mandato');
+    const [selectedProposalType, setSelectedProposalType] = useState('PL+PLP+PEC');
 
     useEffect(() => {
         let isMounted = true;
@@ -71,6 +72,8 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
         { value: 'presenca', label: 'Presença' },
         { value: 'conexoes', label: 'Conexões' },
         { value: 'despesas', label: 'Despesas' },
+        { value: 'discursos', label: 'Discursos' },
+        { value: 'proposicoes', label: 'Proposições' },
     ];
 
     const layoutOptions = [
@@ -124,6 +127,7 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
                 vertexSize,
                 expenseCategory: selectedExpenseCategory,
                 expenseYear: selectedExpenseYear,
+                proposalType: selectedProposalType,
                 graphLayout,
                 communityAlgorithm,
                 backboneEnabled,
@@ -318,6 +322,36 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
                                 <option value="2023">2023</option>
                             </select>
                         </div>
+                    </div>
+                )}
+                {vertexSize === 'proposicoes' && (
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        marginTop: SPACING.sm,
+                        width: '100%'
+                    }}>
+                        <label style={{ fontSize: '10px', color: COLORS.textLight, marginBottom: '2px', fontWeight: 'bold' }}>Tipo de Proposição</label>
+                        <select
+                            value={selectedProposalType}
+                            onChange={(e) => setSelectedProposalType(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '4px 6px',
+                                fontSize: '11px',
+                                border: `1px solid ${COLORS.borderMedium}`,
+                                borderRadius: '4px',
+                                backgroundColor: COLORS.white,
+                                color: COLORS.textDark,
+                                outline: 'none',
+                                height: '26px'
+                            }}
+                        >
+                            <option value="PL+PLP+PEC">(PL+PLP+PEC)</option>
+                            <option value="PL">PL</option>
+                            <option value="PLP">PLP</option>
+                            <option value="PEC">PEC</option>
+                        </select>
                     </div>
                 )}
             </PanelSection>

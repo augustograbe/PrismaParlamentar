@@ -378,3 +378,32 @@ class DespesasCategoriasView(APIView):
         from deputados.models import Despesa
         categorias = Despesa.objects.values_list('tipo_despesa', flat=True).distinct().order_by('tipo_despesa')
         return Response(list(categorias))
+
+
+class DeputadoDiscursosTotaisView(APIView):
+    def get(self, request):
+        from deputados.models import Discurso
+        from django.db.models import Count
+        
+        aggregates = Discurso.objects.values('deputado_id').annotate(total=Count('id'))
+        resultado = {str(item['deputado_id']): item['total'] for item in aggregates}
+        return Response(resultado)
+
+
+class DeputadoProposicoesTotaisView(APIView):
+    def get(self, request):
+        from deputados.models import ProposicaoAutor
+        from django.db.models import Count
+        
+        tipo = request.query_params.get('tipo', 'PL+PLP+PEC')
+        
+        qs = ProposicaoAutor.objects.all()
+        
+        if tipo == 'PL+PLP+PEC' or not tipo:
+            qs = qs.filter(proposicao__sigla_tipo__in=['PL', 'PLP', 'PEC'])
+        else:
+            qs = qs.filter(proposicao__sigla_tipo=tipo)
+            
+        aggregates = qs.values('deputado_id').annotate(total=Count('id'))
+        resultado = {str(item['deputado_id']): item['total'] for item in aggregates}
+        return Response(resultado)

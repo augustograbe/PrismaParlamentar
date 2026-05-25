@@ -137,6 +137,8 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
     const communityCacheRef = useRef({});
     const [dynamicCommunities, setDynamicCommunities] = useState(null);
     const [expenseTotals, setExpenseTotals] = useState(null);
+    const [speechTotals, setSpeechTotals] = useState(null);
+    const [proposalTotals, setProposalTotals] = useState(null);
     const lastBackboneKeyRef = useRef(null); // tracks backbone state to detect changes
 
     // Inicializar o grafo uma vez buscando deputados da API
@@ -329,6 +331,60 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
         loadExpenses();
         return () => { isMounted = false; };
     }, [dataLoaded, filters?.vertexSize, filters?.expenseCategory, filters?.expenseYear]);
+
+    useEffect(() => {
+        if (!dataLoaded || filters?.vertexSize !== 'discursos') {
+            setSpeechTotals(null);
+            return;
+        }
+
+        let isMounted = true;
+
+        async function loadSpeeches() {
+            try {
+                const res = await fetch('http://localhost:8000/api/deputados-discursos-totais/');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (isMounted) {
+                        setSpeechTotals(data);
+                    }
+                }
+            } catch (err) {
+                console.error("Erro ao carregar discursos totais para tamanho de vértice:", err);
+            }
+        }
+
+        loadSpeeches();
+        return () => { isMounted = false; };
+    }, [dataLoaded, filters?.vertexSize]);
+
+    useEffect(() => {
+        if (!dataLoaded || filters?.vertexSize !== 'proposicoes') {
+            setProposalTotals(null);
+            return;
+        }
+
+        let isMounted = true;
+        const type = filters.proposalType || 'PL+PLP+PEC';
+        const query = new URLSearchParams({ tipo: type });
+
+        async function loadProposals() {
+            try {
+                const res = await fetch(`http://localhost:8000/api/deputados-proposicoes-totais/?${query.toString()}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (isMounted) {
+                        setProposalTotals(data);
+                    }
+                }
+            } catch (err) {
+                console.error("Erro ao carregar proposições totais para tamanho de vértice:", err);
+            }
+        }
+
+        loadProposals();
+        return () => { isMounted = false; };
+    }, [dataLoaded, filters?.vertexSize, filters?.proposalType]);
 
     // Função para aplicar layout ao grafo com progresso
     const applyLayout = useCallback((layoutType) => {
@@ -585,6 +641,64 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
                     graph.setNodeAttribute(nodeId, 'size', size);
                 });
             }
+        } else if (vertexSize === 'discursos' && speechTotals) {
+            // Tamanho proporcional à quantidade de discursos no mandato
+            let minSpeech = Infinity;
+            let maxSpeech = -Infinity;
+
+            graph.forEachNode((nodeId) => {
+                if (graph.getNodeAttribute(nodeId, 'hidden')) return;
+                const total = speechTotals[nodeId] || 0;
+                if (total < minSpeech) minSpeech = total;
+                if (total > maxSpeech) maxSpeech = total;
+            });
+
+            if (minSpeech === Infinity || maxSpeech === minSpeech) {
+                graph.forEachNode((nodeId) => {
+                    graph.setNodeAttribute(nodeId, 'size', DEFAULT_SIZE);
+                });
+            } else {
+                const range = maxSpeech - minSpeech;
+                graph.forEachNode((nodeId) => {
+                    if (graph.getNodeAttribute(nodeId, 'hidden')) {
+                        graph.setNodeAttribute(nodeId, 'size', DEFAULT_SIZE);
+                        return;
+                    }
+                    const total = speechTotals[nodeId] || 0;
+                    const normalized = (total - minSpeech) / range;
+                    const size = MIN_SIZE + normalized * (MAX_SIZE - MIN_SIZE);
+                    graph.setNodeAttribute(nodeId, 'size', size);
+                });
+            }
+        } else if (vertexSize === 'proposicoes' && proposalTotals) {
+            // Tamanho proporcional à quantidade de proposições no mandato (filtradas pelo tipo)
+            let minProp = Infinity;
+            let maxProp = -Infinity;
+
+            graph.forEachNode((nodeId) => {
+                if (graph.getNodeAttribute(nodeId, 'hidden')) return;
+                const total = proposalTotals[nodeId] || 0;
+                if (total < minProp) minProp = total;
+                if (total > maxProp) maxProp = total;
+            });
+
+            if (minProp === Infinity || maxProp === minProp) {
+                graph.forEachNode((nodeId) => {
+                    graph.setNodeAttribute(nodeId, 'size', DEFAULT_SIZE);
+                });
+            } else {
+                const range = maxProp - minProp;
+                graph.forEachNode((nodeId) => {
+                    if (graph.getNodeAttribute(nodeId, 'hidden')) {
+                        graph.setNodeAttribute(nodeId, 'size', DEFAULT_SIZE);
+                        return;
+                    }
+                    const total = proposalTotals[nodeId] || 0;
+                    const normalized = (total - minProp) / range;
+                    const size = MIN_SIZE + normalized * (MAX_SIZE - MIN_SIZE);
+                    graph.setNodeAttribute(nodeId, 'size', size);
+                });
+            }
         }
 
         // Aplicar layout se mudou
@@ -637,7 +751,7 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
             });
             onVisibleStatsChanged({ separateBy, groupCounts, groupColors, totalVisible });
         }
-    }, [graph, filters, dataLoaded, applyLayout, graphType, edgesVersion, onVisibleStatsChanged, dynamicCommunities, expenseTotals]);
+    }, [graph, filters, dataLoaded, applyLayout, graphType, edgesVersion, onVisibleStatsChanged, dynamicCommunities, expenseTotals, speechTotals, proposalTotals]);
 
     useEffect(() => {
         applyFilters();

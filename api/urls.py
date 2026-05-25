@@ -9,6 +9,8 @@ from .views import (
     GrafoArestaViewSet,
     DeputadoDespesasTotaisView,
     DespesasCategoriasView,
+    DeputadoDiscursosTotaisView,
+    DeputadoProposicoesTotaisView,
 )
 
 router = DefaultRouter()
@@ -22,5 +24,7 @@ urlpatterns = [
     path('comunidades-coautoria/', ComunidadesCoautoriaView.as_view(), name='comunidades-coautoria'),
     path('deputados-despesas-totais/', DeputadoDespesasTotaisView.as_view(), name='deputados-despesas-totais'),
     path('despesas-categorias/', DespesasCategoriasView.as_view(), name='despesas-categorias'),
+    path('deputados-discursos-totais/', DeputadoDiscursosTotaisView.as_view(), name='deputados-discursos-totais'),
+    path('deputados-proposicoes-totais/', DeputadoProposicoesTotaisView.as_view(), name='deputados-proposicoes-totais'),
     path('', include(router.urls)),
 ]

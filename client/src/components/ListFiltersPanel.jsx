@@ -17,7 +17,7 @@ export default function ListFiltersPanel({ onApply, isMinimized, onToggleMinimiz
     const [presence, setPresence] = useState({ min: 0, max: 100 });
 
     const filterIcon = (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={COLORS.orange} strokeWidth="1.5">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
             <path d="M1 2h14L9.5 8.5V13L6.5 14.5V8.5L1 2z" />
         </svg>
     );
@@ -36,7 +36,7 @@ export default function ListFiltersPanel({ onApply, isMinimized, onToggleMinimiz
             style={{ flex: isMinimized ? '0 0 auto' : '0 1 auto', minHeight: 0 }}
             title={
                 <span style={{ display: 'flex', alignItems: 'center', gap: SPACING.sm }}>
-                    {filterIcon} Filtros
+                    <span style={{ color: COLORS.orange, display: 'flex' }}>{filterIcon}</span> Filtros
                 </span>
             }
             showMinimize={true}
@@ -68,7 +68,17 @@ export default function ListFiltersPanel({ onApply, isMinimized, onToggleMinimiz
                 />
             </div>
 
-            <div style={{ padding: SPACING.lg, display: 'flex', justifyContent: 'center' }}>
+            <div style={{
+                position: 'sticky',
+                bottom: 0,
+                backgroundColor: COLORS.white,
+                padding: SPACING.lg,
+                display: 'flex',
+                justifyContent: 'center',
+                borderTop: `1px solid ${COLORS.borderLight}`,
+                zIndex: 10,
+                marginTop: 'auto',
+            }}>
                 <Button
                     variant="outline"
                     icon={filterIcon}

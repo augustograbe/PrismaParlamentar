@@ -136,14 +136,14 @@ def calcular_similaridade_filtrada(legislatura=57, max_polarizacao=1.0):
     return result
 
 
-def calcular_coautoria_filtrada(legislatura=57, min_autores=2, max_autores=999):
+def calcular_coautoria_filtrada(legislatura=57, min_autores=2, max_autores=999, tipos_proposicao='PL'):
     """
-    Calcula coautorias entre deputados considerando apenas PLs
-    com número de autores dentro do range especificado.
+    Calcula coautorias entre deputados considerando apenas as proposições
+    com número de autores dentro do range especificado e dos tipos indicados (ex: 'PL,PLP,PEC').
 
     Returns: list of dicts with keys: deputado_1, deputado_2, coautoria
     """
-    cache_key = f'coaut_filtrada:{legislatura}:{min_autores}:{max_autores}'
+    cache_key = f'coaut_filtrada:{legislatura}:{min_autores}:{max_autores}:{tipos_proposicao}'
     cached = cache.get(cache_key)
     if cached is not None:
         return cached
@@ -156,11 +156,12 @@ def calcular_coautoria_filtrada(legislatura=57, min_autores=2, max_autores=999):
         return []
 
     deps_ids = set(deputados)
+    tipos_list = tipos_proposicao.split(',')
 
-    # Filtrar PLs pelo número de autores
+    # Filtrar proposições pelo tipo e número de autores
     pls_ids = set(
         Proposicao.objects.filter(
-            sigla_tipo='PL',
+            sigla_tipo__in=tipos_list,
             num_autores_deputados__gte=min_autores,
             num_autores_deputados__lte=max_autores,
         ).values_list('id', flat=True)
@@ -206,18 +207,19 @@ def calcular_backbone_filtrado(
     max_polarizacao=1.0,
     min_autores=2,
     max_autores=999,
-    densidade=None
+    densidade=None,
+    tipos_proposicao='PL'
 ):
     """
     Calcula dinamicamente o backbone (LANS ou High Salience Skeleton)
-    considerando todos os outros filtros avançados aplicados (polarização ou coautores).
+    considerando todos os outros filtros avançados aplicados (polarização, coautores ou tipos de proposição).
     """
     if densidade is None:
         densidade = 0.1 if tipo_grafo == 'similaridade' else 0.05
 
     # Arredondar polarização para evitar redundância no cache
     max_pol_rounded = round(max_polarizacao, 2)
-    cache_key = f'backbone_filtrado:{tipo_grafo}:{metodo}:{legislatura}:{max_pol_rounded}:{min_autores}:{max_autores}:{densidade}'
+    cache_key = f'backbone_filtrado:{tipo_grafo}:{metodo}:{legislatura}:{max_pol_rounded}:{min_autores}:{max_autores}:{densidade}:{tipos_proposicao}'
     
     cached = cache.get(cache_key)
     if cached is not None:
@@ -243,6 +245,7 @@ def calcular_backbone_filtrado(
             legislatura=legislatura,
             min_autores=min_autores,
             max_autores=max_autores,
+            tipos_proposicao=tipos_proposicao,
         )
         G = nx.Graph()
         for aresta in arestas_filtradas:

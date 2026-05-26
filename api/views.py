@@ -440,7 +440,7 @@ class ArestasSimilaridadeFiltradaView(APIView):
 
 
 class ArestasCoautoriaFiltradaView(APIView):
-    """Calcula arestas de coautoria filtrando PLs por quantidade de coautores."""
+    """Calcula arestas de coautoria filtrando por tipos de proposição e quantidade de coautores."""
     def get(self, request):
         try:
             legislatura = int(request.query_params.get('legislatura', 57))
@@ -458,11 +458,14 @@ class ArestasCoautoriaFiltradaView(APIView):
                 status=400,
             )
 
+        tipos_proposicao = request.query_params.get('tipos_proposicao', 'PL')
+
         from grafos.services import calcular_coautoria_filtrada
         result = calcular_coautoria_filtrada(
             legislatura=legislatura,
             min_autores=min_autores,
             max_autores=max_autores,
+            tipos_proposicao=tipos_proposicao,
         )
         return Response(result)
 
@@ -505,6 +508,8 @@ class ArestasBackboneFiltradaView(APIView):
                 status=400,
             )
 
+        tipos_proposicao = request.query_params.get('tipos_proposicao', 'PL')
+
         from grafos.services import calcular_backbone_filtrado
         result = calcular_backbone_filtrado(
             tipo_grafo=tipo_grafo,
@@ -514,5 +519,6 @@ class ArestasBackboneFiltradaView(APIView):
             min_autores=min_autores,
             max_autores=max_autores,
             densidade=densidade,
+            tipos_proposicao=tipos_proposicao,
         )
         return Response(result)

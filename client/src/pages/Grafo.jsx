@@ -95,6 +95,7 @@ export default function Grafo() {
         backboneMethod: 'lans',
         coautoresRange: { min: 2, max: 333 },
         polarizacaoRange: { min: 50, max: 100 },
+        proposalTypes: ['PL'],
     });
 
     // Persist pinned list to localStorage whenever it changes

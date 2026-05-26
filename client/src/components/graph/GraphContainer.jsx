@@ -200,9 +200,10 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
                     metodo: backboneConfig.method,
                     legislatura: '57',
                 });
-                if (type === 'coautoria' && advancedFilters.coautoresRange) {
-                    params.append('min_autores', String(advancedFilters.coautoresRange.min));
-                    params.append('max_autores', String(advancedFilters.coautoresRange.max));
+                if (type === 'coautoria') {
+                    params.append('min_autores', String(advancedFilters.coautoresRange?.min || 2));
+                    params.append('max_autores', String(advancedFilters.coautoresRange?.max || 999));
+                    params.append('tipos_proposicao', (advancedFilters.proposalTypes || ['PL']).join(','));
                 } else if (type === 'similaridade' && advancedFilters.polarizacaoRange) {
                     params.append('max_polarizacao', String(advancedFilters.polarizacaoRange.max / 100));
                 }
@@ -216,11 +217,12 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
             }
         } else if (advancedFilters) {
             // Usar endpoints filtrados quando filtros avançados estão ativos
-            if (type === 'coautoria' && advancedFilters.coautoresRange) {
+            if (type === 'coautoria') {
                 const params = new URLSearchParams({
                     legislatura: '57',
-                    min_autores: String(advancedFilters.coautoresRange.min),
-                    max_autores: String(advancedFilters.coautoresRange.max),
+                    min_autores: String(advancedFilters.coautoresRange?.min || 2),
+                    max_autores: String(advancedFilters.coautoresRange?.max || 999),
+                    tipos_proposicao: (advancedFilters.proposalTypes || ['PL']).join(','),
                 });
                 edgeUrl = `http://localhost:8000/api/arestas-coautoria-filtrada/?${params.toString()}`;
             } else if (type === 'similaridade' && advancedFilters.polarizacaoRange) {
@@ -285,21 +287,24 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
     useEffect(() => {
         if (!dataLoaded) return;
         const backboneEnabled = filters?.backboneEnabled || false;
-        const backboneMethod = filters?.backboneMethod || 'high_salience_skeleton';
+        const backboneMethod = filters?.backboneMethod || 'lans';
 
         // Detectar se filtros avançados estão ativos (valores diferentes do padrão)
         const coautoresRange = filters?.coautoresRange || { min: 2, max: 333 };
         const polarizacaoRange = filters?.polarizacaoRange || { min: 50, max: 100 };
+        const proposalTypes = filters?.proposalTypes || ['PL'];
+
         const hasCoautoresFilter = graphType === 'coautoria' && (coautoresRange.min !== 2 || coautoresRange.max !== 333);
         const hasPolarizacaoFilter = graphType === 'similaridade' && polarizacaoRange.max < 100;
-        const hasAdvancedFilter = hasCoautoresFilter || hasPolarizacaoFilter;
+        const hasProposalTypesFilter = graphType === 'coautoria' && (proposalTypes.length !== 1 || proposalTypes[0] !== 'PL');
+        const hasAdvancedFilter = hasCoautoresFilter || hasPolarizacaoFilter || hasProposalTypesFilter;
 
         // Construir chave que inclui filtros avançados
         let edgeKey;
         if (backboneEnabled) {
             if (hasAdvancedFilter) {
-                if (hasCoautoresFilter) {
-                    edgeKey = `backbone-${backboneMethod}-coautoria-filtered-${coautoresRange.min}-${coautoresRange.max}`;
+                if (graphType === 'coautoria') {
+                    edgeKey = `backbone-${backboneMethod}-coautoria-filtered-${coautoresRange.min}-${coautoresRange.max}-${proposalTypes.join('-')}`;
                 } else {
                     edgeKey = `backbone-${backboneMethod}-similaridade-filtered-pol${polarizacaoRange.max}`;
                 }
@@ -307,8 +312,8 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
                 edgeKey = `backbone-${backboneMethod}-${graphType}`;
             }
         } else if (hasAdvancedFilter) {
-            if (hasCoautoresFilter) {
-                edgeKey = `filtered-coautoria-${coautoresRange.min}-${coautoresRange.max}`;
+            if (graphType === 'coautoria') {
+                edgeKey = `filtered-coautoria-${coautoresRange.min}-${coautoresRange.max}-${proposalTypes.join('-')}`;
             } else {
                 edgeKey = `filtered-similaridade-pol${polarizacaoRange.max}`;
             }
@@ -322,12 +327,12 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
 
             const backboneConfig = backboneEnabled ? { enabled: true, method: backboneMethod } : null;
             const advancedFilters = hasAdvancedFilter
-                ? { coautoresRange, polarizacaoRange }
+                ? { coautoresRange, polarizacaoRange, proposalTypes }
                 : null;
 
             loadEdges(graphType, backboneConfig, advancedFilters);
         }
-    }, [dataLoaded, graphType, filters?.backboneEnabled, filters?.backboneMethod, filters?.coautoresRange, filters?.polarizacaoRange, loadEdges]);
+    }, [dataLoaded, graphType, filters?.backboneEnabled, filters?.backboneMethod, filters?.coautoresRange, filters?.polarizacaoRange, filters?.proposalTypes, loadEdges]);
 
     useEffect(() => {
         if (!dataLoaded || filters?.separateBy !== 'comunidade') {

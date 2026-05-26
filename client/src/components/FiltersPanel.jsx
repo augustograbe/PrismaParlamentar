@@ -6,7 +6,7 @@ import RangeSlider from './RangeSlider';
 import Button from './Button';
 import PanelSection from './PanelSection';
 import Tooltip from './Tooltip';
-import { COLORS, SPACING } from '../constants/theme';
+import { COLORS, SPACING, FONTS } from '../constants/theme';
 
 /**
  * FiltersPanel - Painel de filtros no canto superior direito
@@ -28,6 +28,23 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
     const [backboneMethod, setBackboneMethod] = useState('lans');
     const [coautoresRange, setCoautoresRange] = useState({ min: 2, max: 333 });
     const [polarizacaoRange, setPolarizacaoRange] = useState({ min: 50, max: 100 });
+
+    const [plChecked, setPlChecked] = useState(true);
+    const [plpChecked, setPlpChecked] = useState(false);
+    const [pecChecked, setPecChecked] = useState(false);
+
+    const handleTogglePl = (val) => {
+        if (!val && !plpChecked && !pecChecked) return;
+        setPlChecked(val);
+    };
+    const handleTogglePlp = (val) => {
+        if (!val && !plChecked && !pecChecked) return;
+        setPlpChecked(val);
+    };
+    const handleTogglePec = (val) => {
+        if (!val && !plChecked && !plpChecked) return;
+        setPecChecked(val);
+    };
 
     const [expenseCategories, setExpenseCategories] = useState([]);
     const [selectedExpenseCategory, setSelectedExpenseCategory] = useState('Todas');
@@ -89,7 +106,7 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
     ];
 
     const filterIcon = (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={COLORS.orange} strokeWidth="1.5">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
             <path d="M1 2h14L9.5 8.5V13L6.5 14.5V8.5L1 2z" />
         </svg>
     );
@@ -118,6 +135,11 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
 
     const handleApply = () => {
         if (onApply) {
+            const selectedTypes = [];
+            if (plChecked) selectedTypes.push('PL');
+            if (plpChecked) selectedTypes.push('PLP');
+            if (pecChecked) selectedTypes.push('PEC');
+
             onApply({
                 separateBy,
                 onlyActive,
@@ -136,6 +158,7 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
                 backboneMethod,
                 coautoresRange,
                 polarizacaoRange,
+                proposalTypes: selectedTypes,
             });
         }
     };
@@ -148,7 +171,7 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
             style={{ flex: isMinimized ? '0 0 auto' : '0 1 auto', minHeight: 0 }}
             title={
                 <span style={{ display: 'flex', alignItems: 'center', gap: SPACING.sm }}>
-                    {filterIcon} Filtros
+                    <span style={{ color: COLORS.orange, display: 'flex' }}>{filterIcon}</span> Filtros
                 </span>
             }
             showMinimize={true}
@@ -212,20 +235,57 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
                 />
 
                 {graphType === 'coautoria' ? (
-                    <RangeSlider
-                        label={
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                Coautorias <Tooltip text="Define a quantidade mínima e máxima de projetos em comum para exibir a conexão." />
-                            </span>
-                        }
-                        min={1}
-                        max={maxCoautoriaLimit}
-                        valueMin={coautoria.min}
-                        valueMax={coautoria.max}
-                        onChange={setCoautoria}
-                        formatLabel={(val) => String(val)}
-                        disabled={backboneEnabled}
-                    />
+                    <>
+                        <RangeSlider
+                            label={
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    Coautorias <Tooltip text="Define a quantidade mínima e máxima de projetos em comum para exibir a conexão." />
+                                </span>
+                            }
+                            min={1}
+                            max={maxCoautoriaLimit}
+                            valueMin={coautoria.min}
+                            valueMax={coautoria.max}
+                            onChange={setCoautoria}
+                            formatLabel={(val) => String(val)}
+                            disabled={backboneEnabled}
+                        />
+                        <div style={{ display: 'flex', gap: SPACING.md, flexWrap: 'wrap', paddingLeft: '4px', marginTop: SPACING.xs }}>
+                            <Checkbox
+                                label={
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        PL <Tooltip text="Considera Projetos de Lei ordinária no cálculo de coautoria." />
+                                    </span>
+                                }
+                                checked={plChecked}
+                                onChange={handleTogglePl}
+                                disabled={backboneEnabled}
+                                style={{ gap: '6px' }}
+                            />
+                            <Checkbox
+                                label={
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        PLP <Tooltip text="Considera Projetos de Lei Complementar no cálculo de coautoria." />
+                                    </span>
+                                }
+                                checked={plpChecked}
+                                onChange={handleTogglePlp}
+                                disabled={backboneEnabled}
+                                style={{ gap: '6px' }}
+                            />
+                            <Checkbox
+                                label={
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        PEC <Tooltip text="Considera Propostas de Emenda à Constituição no cálculo de coautoria." />
+                                    </span>
+                                }
+                                checked={pecChecked}
+                                onChange={handleTogglePec}
+                                disabled={backboneEnabled}
+                                style={{ gap: '6px' }}
+                            />
+                        </div>
+                    </>
                 ) : (
                     <RangeSlider
                         label={
@@ -445,7 +505,17 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
                 </PanelSection>
             </div>
 
-            <div style={{ padding: SPACING.lg, display: 'flex', justifyContent: 'center' }}>
+            <div style={{
+                position: 'sticky',
+                bottom: 0,
+                backgroundColor: COLORS.white,
+                padding: SPACING.lg,
+                display: 'flex',
+                justifyContent: 'center',
+                borderTop: `1px solid ${COLORS.borderLight}`,
+                zIndex: 10,
+                marginTop: 'auto',
+            }}>
                 <Button
                     variant="outline"
                     icon={filterIcon}

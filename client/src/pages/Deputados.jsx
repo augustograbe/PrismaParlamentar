@@ -43,6 +43,8 @@ export default function Deputados() {
     const [profileDeputy, setProfileDeputy] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [openPanel, setOpenPanel] = useState('filtros');
+    const [highlightedDeputyId, setHighlightedDeputyId] = useState(null);
+    const [hoveredRowId, setHoveredRowId] = useState(null);
     const [speechTotals, setSpeechTotals] = useState({});
     const [proposalTotals, setProposalTotals] = useState({});
     const [expenseTotals, setExpenseTotals] = useState({});
@@ -277,6 +279,15 @@ export default function Deputados() {
         return list;
     }, [filteredDeputies, sortBy, expenseTotals, speechTotals, proposalTotals]);
 
+    // Map of deputy ID to their current sorted rank index (1-based)
+    const deputyRankings = useMemo(() => {
+        const ranks = {};
+        sortedDeputies.forEach((d, idx) => {
+            ranks[d.id] = idx + 1;
+        });
+        return ranks;
+    }, [sortedDeputies]);
+
     // Pagination
     const totalPages = Math.max(1, Math.ceil(sortedDeputies.length / PAGE_SIZE));
     const paginatedDeputies = useMemo(() => {
@@ -318,10 +329,7 @@ export default function Deputados() {
         setPinnedDeputies((prev) => prev.filter((p) => p.id !== depId));
     }, []);
 
-    const handleSelectPinned = useCallback((pinnedDep) => {
-        const fullDep = allDeputies.find((d) => d.id === pinnedDep.id);
-        setProfileDeputy(fullDep || pinnedDep);
-    }, [allDeputies]);
+
 
     const handleOpenProfile = useCallback((deputy) => {
         const color = PARTY_COLORS[deputy.sigla_partido] || COLORS.textMedium;
@@ -332,10 +340,35 @@ export default function Deputados() {
         setProfileDeputy(null);
     }, []);
 
-    const handleSearchSelectDeputy = useCallback((dep) => {
+    const handleSearchSelectProfile = useCallback((dep) => {
         const color = PARTY_COLORS[dep.sigla_partido] || COLORS.textMedium;
         setProfileDeputy({ ...dep, nodeColor: color });
     }, []);
+
+    const handleSearchSelectDeputyList = useCallback((dep) => {
+        const index = sortedDeputies.findIndex((d) => d.id === dep.id);
+        
+        if (index === -1) {
+            // Deputy is filtered out, open their profile modal directly!
+            const color = PARTY_COLORS[dep.sigla_partido] || COLORS.textMedium;
+            setProfileDeputy({ ...dep, nodeColor: color });
+        } else {
+            // Deputy is present in the list, go to them and highlight
+            const page = Math.floor(index / PAGE_SIZE) + 1;
+            setCurrentPage(page);
+            setHighlightedDeputyId(dep.id);
+        }
+    }, [sortedDeputies]);
+
+    // Scroll to highlighted deputy when it is set/changes
+    useEffect(() => {
+        if (highlightedDeputyId) {
+            const rowElement = document.getElementById(`deputy-row-${highlightedDeputyId}`);
+            if (rowElement) {
+                rowElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    }, [highlightedDeputyId, currentPage]);
 
     const pinnedIds = pinnedDeputies.map((p) => p.id);
 
@@ -394,16 +427,29 @@ export default function Deputados() {
         zIndex: 2,
     };
 
-    const getTdStyle = (rowIdx) => ({
-        padding: `${SPACING.sm} ${SPACING.lg}`,
-        color: COLORS.textDark,
-        borderBottom: `1px solid ${COLORS.borderLight}`,
-        backgroundColor: rowIdx % 2 === 0 ? COLORS.white : '#fafafa',
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        maxWidth: '200px',
-    });
+    const getTdStyle = (rowIdx, isPinned, isHighlighted, isHovered) => {
+        let bgColor = rowIdx % 2 === 0 ? COLORS.white : '#fafafa';
+        if (isPinned) {
+            bgColor = 'rgba(232, 133, 12, 0.08)'; // Light orange
+        }
+        if (isHighlighted) {
+            bgColor = 'rgba(232, 133, 12, 0.35)'; // Strong orange
+        }
+        if (isHovered) {
+            bgColor = '#eef4ff'; // Normal hover color
+        }
+        return {
+            padding: `${SPACING.sm} ${SPACING.lg}`,
+            color: COLORS.textDark,
+            borderBottom: `1px solid ${COLORS.borderLight}`,
+            backgroundColor: bgColor,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            maxWidth: '200px',
+            transition: 'background-color 0.15s ease',
+        };
+    };
 
     const trHoverStyle = {
         cursor: 'pointer',
@@ -547,8 +593,8 @@ export default function Deputados() {
             {/* TopBar */}
             <TopBar
                 deputyList={allDeputies}
-                onSelectDeputy={handleSearchSelectDeputy}
-                onSelectProfile={handleSearchSelectDeputy}
+                onSelectDeputy={handleSearchSelectDeputyList}
+                onSelectProfile={handleSearchSelectProfile}
                 activePage="lista"
             />
 
@@ -601,31 +647,34 @@ export default function Deputados() {
                                 <tbody>
                                     {paginatedDeputies.map((dep, idx) => {
                                         const isPinned = pinnedIds.includes(dep.id);
+                                        const isHighlighted = highlightedDeputyId === dep.id;
+                                        const isHovered = hoveredRowId === dep.id;
                                         const globalIndex = (currentPage - 1) * PAGE_SIZE + idx + 1;
                                         return (
                                             <tr
                                                 key={dep.id}
+                                                id={`deputy-row-${dep.id}`}
                                                 style={trHoverStyle}
                                                 onClick={() => handleOpenProfile(dep)}
-                                                onMouseEnter={(e) => {
-                                                    const cells = e.currentTarget.querySelectorAll('td');
-                                                    cells.forEach((c) => c.style.backgroundColor = '#eef4ff');
+                                                onMouseEnter={() => {
+                                                    setHoveredRowId(dep.id);
+                                                    if (highlightedDeputyId === dep.id) {
+                                                        setHighlightedDeputyId(null);
+                                                    }
                                                 }}
-                                                onMouseLeave={(e) => {
-                                                    const cells = e.currentTarget.querySelectorAll('td');
-                                                    const bg = idx % 2 === 0 ? COLORS.white : '#fafafa';
-                                                    cells.forEach((c) => c.style.backgroundColor = bg);
+                                                onMouseLeave={() => {
+                                                    setHoveredRowId(null);
                                                 }}
                                             >
-                                                <td style={{ ...getTdStyle(idx), textAlign: 'center', width: '44px', color: COLORS.textLight, fontSize: FONTS.sizeXs }}>
+                                                <td style={{ ...getTdStyle(idx, isPinned, isHighlighted, isHovered), textAlign: 'center', width: '44px', color: COLORS.textLight, fontSize: FONTS.sizeXs }}>
                                                     {globalIndex}
                                                 </td>
                                                 {selectedFields.map((field) => (
-                                                    <td key={field} style={getTdStyle(idx)}>
+                                                    <td key={field} style={getTdStyle(idx, isPinned, isHighlighted, isHovered)}>
                                                         {renderCell(dep, field)}
                                                     </td>
                                                 ))}
-                                                <td style={{ ...getTdStyle(idx), textAlign: 'center', width: '50px' }}>
+                                                <td style={{ ...getTdStyle(idx, isPinned, isHighlighted, isHovered), textAlign: 'center', width: '50px' }}>
                                                     <button
                                                         style={pinButtonStyle(isPinned)}
                                                         title={isPinned ? 'Desfixar' : 'Fixar'}
@@ -756,9 +805,10 @@ export default function Deputados() {
                     <PinnedPanel
                         pinnedDeputies={pinnedDeputies}
                         onRemove={handleRemovePinned}
-                        onSelect={handleSelectPinned}
+                        onSelect={handleSearchSelectDeputyList}
                         isMinimized={openPanel !== 'fixados'}
                         onToggleMinimize={() => handleTogglePanel('fixados')}
+                        deputyRankings={deputyRankings}
                     />
                 </div>
             </div>

@@ -11,7 +11,7 @@ import { Pin } from 'lucide-react';
  * - onRemove: callback (id) ao remover um deputado da lista
  * - onSelect: callback (dep) ao clicar no nome de um deputado
  */
-export default function PinnedPanel({ pinnedDeputies = [], onRemove, onSelect, isMinimized, onToggleMinimize }) {
+export default function PinnedPanel({ pinnedDeputies = [], onRemove, onSelect, isMinimized, onToggleMinimize, deputyRankings }) {
 
 
     const pinIcon = (
@@ -99,6 +99,20 @@ export default function PinnedPanel({ pinnedDeputies = [], onRemove, onSelect, i
                                 onClick={() => onSelect && onSelect(dep)}
                                 title={`Selecionar ${dep.nome}`}
                             >
+                                {deputyRankings && deputyRankings[dep.id] !== undefined && (
+                                    <span style={{
+                                        fontSize: FONTS.sizeXs,
+                                        fontWeight: FONTS.weightBold,
+                                        color: COLORS.orange,
+                                        marginRight: SPACING.xs,
+                                        flexShrink: 0,
+                                        backgroundColor: 'rgba(232, 133, 12, 0.1)',
+                                        padding: '1px 4px',
+                                        borderRadius: SPACING.radiusSm,
+                                    }}>
+                                        #{deputyRankings[dep.id]}
+                                    </span>
+                                )}
                                 <span style={{ 
                                     overflow: 'hidden', 
                                     textOverflow: 'ellipsis', 

@@ -310,7 +310,7 @@ export default function Grafo() {
             />
 
             {/* Info frame - canto inferior esquerdo */}
-            <InfoFrame />
+            <InfoFrame graphType={graphType} filters={filters} />
 
             {/* Agrupamento de painéis à direita */}
             <div style={{

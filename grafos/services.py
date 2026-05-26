@@ -197,3 +197,89 @@ def calcular_coautoria_filtrada(legislatura=57, min_autores=2, max_autores=999):
     # Cache por 24 horas
     cache.set(cache_key, result, 86400)
     return result
+
+
+def calcular_backbone_filtrado(
+    tipo_grafo='similaridade',
+    metodo='lans',
+    legislatura=57,
+    max_polarizacao=1.0,
+    min_autores=2,
+    max_autores=999,
+    densidade=None
+):
+    """
+    Calcula dinamicamente o backbone (LANS ou High Salience Skeleton)
+    considerando todos os outros filtros avançados aplicados (polarização ou coautores).
+    """
+    if densidade is None:
+        densidade = 0.1 if tipo_grafo == 'similaridade' else 0.05
+
+    # Arredondar polarização para evitar redundância no cache
+    max_pol_rounded = round(max_polarizacao, 2)
+    cache_key = f'backbone_filtrado:{tipo_grafo}:{metodo}:{legislatura}:{max_pol_rounded}:{min_autores}:{max_autores}:{densidade}'
+    
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    import networkx as nx
+    import netbone as nb
+
+    # 1. Obter arestas filtradas
+    if tipo_grafo == 'similaridade':
+        arestas_filtradas = calcular_similaridade_filtrada(
+            legislatura=legislatura,
+            max_polarizacao=max_polarizacao,
+        )
+        G = nx.Graph()
+        for aresta in arestas_filtradas:
+            peso = aresta['similaridade']
+            # Pré-filtragem de similaridade >= 80% idêntica ao script estático
+            if peso >= 80.0:
+                G.add_edge(aresta['deputado_1'], aresta['deputado_2'], weight=float(peso))
+    elif tipo_grafo == 'coautoria':
+        arestas_filtradas = calcular_coautoria_filtrada(
+            legislatura=legislatura,
+            min_autores=min_autores,
+            max_autores=max_autores,
+        )
+        G = nx.Graph()
+        for aresta in arestas_filtradas:
+            peso = aresta['coautoria']
+            if peso >= 1:
+                G.add_edge(aresta['deputado_1'], aresta['deputado_2'], weight=float(peso))
+    else:
+        return []
+
+    if G.number_of_edges() == 0:
+        return []
+
+    # 2. Computar backbone
+    if metodo == 'high_salience_skeleton':
+        backbone_result = nb.high_salience_skeleton(G)
+    elif metodo == 'lans':
+        backbone_result = nb.lans(G)
+    else:
+        return []
+
+    # 3. Filtrar pela densidade desejada
+    filtered_graph = nb.fraction_filter(backbone_result, densidade)
+
+    # 4. Formatar resultado compatível com serializer
+    resultado = []
+    for n1, n2, data in filtered_graph.edges(data=True):
+        peso = data.get('weight', 0.0)
+        resultado.append({
+            'deputado_1': int(min(n1, n2)),
+            'deputado_2': int(max(n1, n2)),
+            'peso': float(peso),
+            'legislatura': legislatura,
+            'metodo': metodo,
+            'tipo_grafo': tipo_grafo,
+        })
+
+    # Cache por 24 horas
+    cache.set(cache_key, resultado, 86400)
+    return resultado
+

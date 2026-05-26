@@ -92,7 +92,7 @@ export default function Grafo() {
         vertexSize: 'padrao',
         graphLayout: 'forceatlas2_clusters',
         backboneEnabled: false,
-        backboneMethod: 'high_salience_skeleton',
+        backboneMethod: 'lans',
         coautoresRange: { min: 2, max: 333 },
         polarizacaoRange: { min: 50, max: 100 },
     });

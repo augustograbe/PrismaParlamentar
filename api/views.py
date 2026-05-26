@@ -409,6 +409,10 @@ class DeputadoProposicoesTotaisView(APIView):
         return Response(resultado)
 
 
+
+
+
+
 class ArestasSimilaridadeFiltradaView(APIView):
     """Calcula arestas de similaridade excluindo votações polarizadas."""
     def get(self, request):
@@ -459,5 +463,56 @@ class ArestasCoautoriaFiltradaView(APIView):
             legislatura=legislatura,
             min_autores=min_autores,
             max_autores=max_autores,
+        )
+        return Response(result)
+
+
+class ArestasBackboneFiltradaView(APIView):
+    """Calcula dinamicamente as arestas de backbone considerando os outros filtros avançados."""
+    def get(self, request):
+        tipo_grafo = request.query_params.get('tipo_grafo', 'similaridade')
+        metodo = request.query_params.get('metodo', 'lans')
+        
+        try:
+            legislatura = int(request.query_params.get('legislatura', 57))
+            max_polarizacao = float(request.query_params.get('max_polarizacao', 1.0))
+            min_autores = int(request.query_params.get('min_autores', 2))
+            max_autores = int(request.query_params.get('max_autores', 999))
+            
+            densidade_raw = request.query_params.get('densidade', None)
+            densidade = float(densidade_raw) if densidade_raw is not None else None
+        except (TypeError, ValueError):
+            return Response(
+                {'detail': 'Os parâmetros numéricos (legislatura, max_polarizacao, min_autores, max_autores, densidade) devem ser válidos.'},
+                status=400,
+            )
+
+        if not (0.0 <= max_polarizacao <= 1.0):
+            return Response(
+                {'detail': 'max_polarizacao deve estar entre 0.0 e 1.0.'},
+                status=400,
+            )
+
+        if min_autores > max_autores:
+            return Response(
+                {'detail': 'min_autores deve ser menor ou igual a max_autores.'},
+                status=400,
+            )
+
+        if densidade is not None and not (0.0 < densidade <= 1.0):
+            return Response(
+                {'detail': 'densidade deve estar entre 0.0 e 1.0.'},
+                status=400,
+            )
+
+        from grafos.services import calcular_backbone_filtrado
+        result = calcular_backbone_filtrado(
+            tipo_grafo=tipo_grafo,
+            metodo=metodo,
+            legislatura=legislatura,
+            max_polarizacao=max_polarizacao,
+            min_autores=min_autores,
+            max_autores=max_autores,
+            densidade=densidade,
         )
         return Response(result)

@@ -4,6 +4,7 @@ from .views import (
     ArestaCoautoriaViewSet,
     ArestasCoautoriaFiltradaView,
     ArestasSimilaridadeFiltradaView,
+    ArestasBackboneFiltradaView,
     BackboneArestaViewSet,
     ComunidadesCoautoriaView,
     ComunidadesVotosView,
@@ -30,5 +31,7 @@ urlpatterns = [
     path('deputados-proposicoes-totais/', DeputadoProposicoesTotaisView.as_view(), name='deputados-proposicoes-totais'),
     path('arestas-similaridade-filtrada/', ArestasSimilaridadeFiltradaView.as_view(), name='arestas-similaridade-filtrada'),
     path('arestas-coautoria-filtrada/', ArestasCoautoriaFiltradaView.as_view(), name='arestas-coautoria-filtrada'),
+    path('arestas-backbone-filtrada/', ArestasBackboneFiltradaView.as_view(), name='arestas-backbone-filtrada'),
     path('', include(router.urls)),
 ]
+

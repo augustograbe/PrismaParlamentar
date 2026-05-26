@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
  * Props:
  * - text: texto explicativo a ser exibido no tooltip
  */
-export default function Tooltip({ text }) {
+export default function Tooltip({ text, children, isWarning = false }) {
     const [visible, setVisible] = useState(false);
     const [coords, setCoords] = useState({ top: 0, left: 0, arrowLeft: '50%' });
     const ref = useRef(null);
@@ -48,10 +48,15 @@ export default function Tooltip({ text }) {
             <div 
                 ref={ref}
                 onMouseEnter={handleMouseEnter}
-                className="w-[16px] h-[16px] rounded-full bg-[#f2f2f2] text-[#aaa] flex items-center justify-center text-[10px] font-bold hover:bg-[#e8850c] hover:text-white transition-colors cursor-help"
+                className={`w-[16px] h-[16px] rounded-full flex items-center justify-center text-[10px] font-bold transition-colors cursor-help ${
+                    isWarning 
+                        ? "bg-[#fff3cd] text-[#856404] hover:bg-[#856404] hover:text-white" 
+                        : "bg-[#f2f2f2] text-[#aaa] hover:bg-[#e8850c] hover:text-white"
+                }`}
             >
-                ?
+                {children || '?'}
             </div>
+
             
             {/* Conteúdo do Tooltip em Portal para não ser cortado pelo Frame */}
             {visible && createPortal(

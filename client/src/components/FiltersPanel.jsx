@@ -25,7 +25,7 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
     const [graphLayout, setGraphLayout] = useState('forceatlas2_clusters');
     const [communityAlgorithm, setCommunityAlgorithm] = useState('louvain');
     const [backboneEnabled, setBackboneEnabled] = useState(false);
-    const [backboneMethod, setBackboneMethod] = useState('high_salience_skeleton');
+    const [backboneMethod, setBackboneMethod] = useState('lans');
     const [coautoresRange, setCoautoresRange] = useState({ min: 2, max: 333 });
     const [polarizacaoRange, setPolarizacaoRange] = useState({ min: 50, max: 100 });
 
@@ -392,7 +392,13 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
                     <Dropdown
                         label={
                             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                Método do backbone <Tooltip text="Escolhe entre algoritmos (High Salience Skeleton ou LANS) para extrair as ligações mais significativas." />
+                                Método do backbone 
+                                <Tooltip text="Escolhe entre algoritmos (High Salience Skeleton ou LANS) para extrair as ligações mais significativas." />
+                                {backboneMethod === 'high_salience_skeleton' && (
+                                    <Tooltip text="Aviso: O algoritmo High Salience Skeleton é computacionalmente pesado e pode levar de 10 a 40 segundos para calcular dependendo dos filtros ativos." isWarning={true}>
+                                        ⚠️
+                                    </Tooltip>
+                                )}
                             </span>
                         }
                         options={backboneMethodOptions}

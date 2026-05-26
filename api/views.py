@@ -407,3 +407,57 @@ class DeputadoProposicoesTotaisView(APIView):
         aggregates = qs.values('deputado_id').annotate(total=Count('id'))
         resultado = {str(item['deputado_id']): item['total'] for item in aggregates}
         return Response(resultado)
+
+
+class ArestasSimilaridadeFiltradaView(APIView):
+    """Calcula arestas de similaridade excluindo votações polarizadas."""
+    def get(self, request):
+        try:
+            legislatura = int(request.query_params.get('legislatura', 57))
+            max_polarizacao = float(request.query_params.get('max_polarizacao', 1.0))
+        except (TypeError, ValueError):
+            return Response(
+                {'detail': 'legislatura e max_polarizacao devem ser numéricos.'},
+                status=400,
+            )
+
+        if not (0.0 <= max_polarizacao <= 1.0):
+            return Response(
+                {'detail': 'max_polarizacao deve estar entre 0.0 e 1.0.'},
+                status=400,
+            )
+
+        from grafos.services import calcular_similaridade_filtrada
+        result = calcular_similaridade_filtrada(
+            legislatura=legislatura,
+            max_polarizacao=max_polarizacao,
+        )
+        return Response(result)
+
+
+class ArestasCoautoriaFiltradaView(APIView):
+    """Calcula arestas de coautoria filtrando PLs por quantidade de coautores."""
+    def get(self, request):
+        try:
+            legislatura = int(request.query_params.get('legislatura', 57))
+            min_autores = int(request.query_params.get('min_autores', 2))
+            max_autores = int(request.query_params.get('max_autores', 999))
+        except (TypeError, ValueError):
+            return Response(
+                {'detail': 'legislatura, min_autores e max_autores devem ser numéricos.'},
+                status=400,
+            )
+
+        if min_autores > max_autores:
+            return Response(
+                {'detail': 'min_autores deve ser menor ou igual a max_autores.'},
+                status=400,
+            )
+
+        from grafos.services import calcular_coautoria_filtrada
+        result = calcular_coautoria_filtrada(
+            legislatura=legislatura,
+            min_autores=min_autores,
+            max_autores=max_autores,
+        )
+        return Response(result)

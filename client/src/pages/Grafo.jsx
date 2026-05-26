@@ -93,6 +93,8 @@ export default function Grafo() {
         graphLayout: 'forceatlas2_clusters',
         backboneEnabled: false,
         backboneMethod: 'high_salience_skeleton',
+        coautoresRange: { min: 2, max: 333 },
+        polarizacaoRange: { min: 50, max: 100 },
     });
 
     // Persist pinned list to localStorage whenever it changes

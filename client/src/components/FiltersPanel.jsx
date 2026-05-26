@@ -26,6 +26,8 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
     const [communityAlgorithm, setCommunityAlgorithm] = useState('louvain');
     const [backboneEnabled, setBackboneEnabled] = useState(false);
     const [backboneMethod, setBackboneMethod] = useState('high_salience_skeleton');
+    const [coautoresRange, setCoautoresRange] = useState({ min: 2, max: 333 });
+    const [polarizacaoRange, setPolarizacaoRange] = useState({ min: 50, max: 100 });
 
     const [expenseCategories, setExpenseCategories] = useState([]);
     const [selectedExpenseCategory, setSelectedExpenseCategory] = useState('Todas');
@@ -132,6 +134,8 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
                 communityAlgorithm,
                 backboneEnabled,
                 backboneMethod,
+                coautoresRange,
+                polarizacaoRange,
             });
         }
     };
@@ -397,6 +401,41 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
                         disabled={!backboneEnabled}
                         style={{ flexDirection: 'column', alignItems: 'flex-start', gap: SPACING.sm }}
                     />
+                    {graphType === 'coautoria' && (
+                        <>
+                            <div style={{ height: SPACING.md }} />
+                            <RangeSlider
+                                label={
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        Coautores por projeto <Tooltip text="Considera apenas projetos de lei com quantidade de coautores dentro deste intervalo. Projetos fora do intervalo são ignorados no cálculo de coautoria. Útil para excluir PLs de bancada inteira." />
+                                    </span>
+                                }
+                                min={2}
+                                max={333}
+                                valueMin={coautoresRange.min}
+                                valueMax={coautoresRange.max}
+                                onChange={setCoautoresRange}
+                                formatLabel={(val) => String(val)}
+                            />
+                        </>
+                    )}
+                    {graphType === 'similaridade' && (
+                        <>
+                            <div style={{ height: SPACING.md }} />
+                            <RangeSlider
+                                label={
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        Polarização máx. <Tooltip text="Descarta votações em que a fração do voto dominante excede o limite máximo. Ex: máx 80% remove votações onde 80% ou mais votaram igual — votações quase unânimes que não diferenciam deputados." />
+                                    </span>
+                                }
+                                min={50}
+                                max={100}
+                                valueMin={polarizacaoRange.min}
+                                valueMax={polarizacaoRange.max}
+                                onChange={setPolarizacaoRange}
+                            />
+                        </>
+                    )}
                 </PanelSection>
             </div>
 

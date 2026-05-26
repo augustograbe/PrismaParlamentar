@@ -140,6 +140,7 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
     const [speechTotals, setSpeechTotals] = useState(null);
     const [proposalTotals, setProposalTotals] = useState(null);
     const lastBackboneKeyRef = useRef(null); // tracks backbone state to detect changes
+    const loadingEdgesRef = useRef(false); // previne applyFilters de rodar durante carregamento de arestas
 
     // Inicializar o grafo uma vez buscando deputados da API
     useEffect(() => {
@@ -178,12 +179,15 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
     }, [graph, onDeputiesLoaded]);
 
     // Carregar arestas quando o tipo de grafo muda
-    const loadEdges = useCallback(async (type, backboneConfig = null) => {
+    const loadEdges = useCallback(async (type, backboneConfig = null, advancedFilters = null) => {
         if (graph.order === 0) return;
 
         // Mostrar loading imediatamente
         setIsComputing(true);
         setProgress(0);
+
+        // Marcar que estamos carregando arestas (impede applyFilters de rodar em grafo vazio)
+        loadingEdgesRef.current = true;
 
         // Remover todas as arestas atuais
         graph.clearEdges();
@@ -195,6 +199,26 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
                 tipo_grafo: type === 'coautoria' ? 'coautoria' : 'similaridade',
             });
             edgeUrl = `http://localhost:8000/api/arestas-backbone/?${params.toString()}`;
+        } else if (advancedFilters) {
+            // Usar endpoints filtrados quando filtros avançados estão ativos
+            if (type === 'coautoria' && advancedFilters.coautoresRange) {
+                const params = new URLSearchParams({
+                    legislatura: '57',
+                    min_autores: String(advancedFilters.coautoresRange.min),
+                    max_autores: String(advancedFilters.coautoresRange.max),
+                });
+                edgeUrl = `http://localhost:8000/api/arestas-coautoria-filtrada/?${params.toString()}`;
+            } else if (type === 'similaridade' && advancedFilters.polarizacaoRange) {
+                const params = new URLSearchParams({
+                    legislatura: '57',
+                    max_polarizacao: String(advancedFilters.polarizacaoRange.max / 100), // converter % para fração
+                });
+                edgeUrl = `http://localhost:8000/api/arestas-similaridade-filtrada/?${params.toString()}`;
+            } else {
+                edgeUrl = type === 'coautoria'
+                    ? 'http://localhost:8000/api/arestas-coautoria/'
+                    : 'http://localhost:8000/api/arestas/';
+            }
         } else {
             edgeUrl = type === 'coautoria'
                 ? 'http://localhost:8000/api/arestas-coautoria/'
@@ -237,22 +261,50 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
             setEdgesVersion(v => v + 1);
         } catch (error) {
             console.error("Erro ao carregar arestas:", error);
+        } finally {
+            loadingEdgesRef.current = false;
         }
     }, [graph, onMaxCoautoriaLoaded]);
 
-    // Efeito: carregar arestas quando dados estiverem prontos, graphType mudar, ou backbone mudar
+    // Efeito: carregar arestas quando dados estiverem prontos, graphType mudar, backbone mudar, ou filtros avançados mudarem
     useEffect(() => {
         if (!dataLoaded) return;
         const backboneEnabled = filters?.backboneEnabled || false;
         const backboneMethod = filters?.backboneMethod || 'high_salience_skeleton';
-        const backboneKey = backboneEnabled ? `backbone-${backboneMethod}-${graphType}` : `normal-${graphType}`;
 
-        if (lastBackboneKeyRef.current !== backboneKey) {
-            lastBackboneKeyRef.current = backboneKey;
-            lastGraphTypeRef.current = graphType;
-            loadEdges(graphType, backboneEnabled ? { enabled: true, method: backboneMethod } : null);
+        // Detectar se filtros avançados estão ativos (valores diferentes do padrão)
+        const coautoresRange = filters?.coautoresRange || { min: 2, max: 333 };
+        const polarizacaoRange = filters?.polarizacaoRange || { min: 50, max: 100 };
+        const hasCoautoresFilter = graphType === 'coautoria' && (coautoresRange.min !== 2 || coautoresRange.max !== 333);
+        const hasPolarizacaoFilter = graphType === 'similaridade' && polarizacaoRange.max < 100;
+        const hasAdvancedFilter = hasCoautoresFilter || hasPolarizacaoFilter;
+
+        // Construir chave que inclui filtros avançados
+        let edgeKey;
+        if (backboneEnabled) {
+            edgeKey = `backbone-${backboneMethod}-${graphType}`;
+        } else if (hasAdvancedFilter) {
+            if (hasCoautoresFilter) {
+                edgeKey = `filtered-coautoria-${coautoresRange.min}-${coautoresRange.max}`;
+            } else {
+                edgeKey = `filtered-similaridade-pol${polarizacaoRange.max}`;
+            }
+        } else {
+            edgeKey = `normal-${graphType}`;
         }
-    }, [dataLoaded, graphType, filters?.backboneEnabled, filters?.backboneMethod, loadEdges]);
+
+        if (lastBackboneKeyRef.current !== edgeKey) {
+            lastBackboneKeyRef.current = edgeKey;
+            lastGraphTypeRef.current = graphType;
+
+            const backboneConfig = backboneEnabled ? { enabled: true, method: backboneMethod } : null;
+            const advancedFilters = hasAdvancedFilter && !backboneEnabled
+                ? { coautoresRange, polarizacaoRange }
+                : null;
+
+            loadEdges(graphType, backboneConfig, advancedFilters);
+        }
+    }, [dataLoaded, graphType, filters?.backboneEnabled, filters?.backboneMethod, filters?.coautoresRange?.min, filters?.coautoresRange?.max, filters?.polarizacaoRange?.max, loadEdges]);
 
     useEffect(() => {
         if (!dataLoaded || filters?.separateBy !== 'comunidade') {
@@ -410,7 +462,7 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
                     const inferredSettings = forceAtlas2.inferSettings(graph);
                     const fa2Settings = isSpread
                         ? { ...inferredSettings, gravity: 0.5, scalingRatio: 80, strongGravityMode: false, barnesHutOptimize: true, edgeWeightInfluence: 0.1 }
-                        : { ...inferredSettings, gravity: 3, scalingRatio: 10 };
+                        : { ...inferredSettings, gravity: 3, scalingRatio: 10, edgeWeightInfluence: 1 };
 
                     let done = 0;
                     const runChunk = () => {
@@ -458,6 +510,9 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
     // Aplicar filtros quando mudam
     const applyFilters = useCallback(() => {
         if (!filters || !dataLoaded) return;
+        // Não rodar applyFilters enquanto arestas estão sendo carregadas;
+        // quando loadEdges terminar, edgesVersion vai incrementar e applyFilters roda de novo.
+        if (loadingEdgesRef.current) return;
 
         const { separateBy, onlyActive, onlyWithConnections, presence, voteSimilarity, vertexSize, graphLayout } = filters;
         const communityKey = getCommunityCacheKey(graphType, filters);
@@ -513,6 +568,20 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
             }
 
             graph.setEdgeAttribute(edgeId, 'hidden', hidden);
+        });
+
+        // Setar peso das arestas para ForceAtlas2:
+        // Arestas escondidas recebem weight=0 para que o FA2 as ignore no layout.
+        // Arestas visíveis recebem peso proporcional ao valor (similaridade/coautoria).
+        graph.forEachEdge((edgeId, attrs) => {
+            if (attrs.hidden) {
+                graph.setEdgeAttribute(edgeId, 'weight', 0);
+            } else {
+                const w = graphType === 'coautoria'
+                    ? (attrs.coautoria || 1)
+                    : ((attrs.similaridade || 0) / 100);
+                graph.setEdgeAttribute(edgeId, 'weight', w);
+            }
         });
 
         // Contar arestas válidas por nó (útil para filtro e tamanho)

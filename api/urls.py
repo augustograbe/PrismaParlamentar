@@ -2,6 +2,8 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     ArestaCoautoriaViewSet,
+    ArestasCoautoriaFiltradaView,
+    ArestasSimilaridadeFiltradaView,
     BackboneArestaViewSet,
     ComunidadesCoautoriaView,
     ComunidadesVotosView,
@@ -26,5 +28,7 @@ urlpatterns = [
     path('despesas-categorias/', DespesasCategoriasView.as_view(), name='despesas-categorias'),
     path('deputados-discursos-totais/', DeputadoDiscursosTotaisView.as_view(), name='deputados-discursos-totais'),
     path('deputados-proposicoes-totais/', DeputadoProposicoesTotaisView.as_view(), name='deputados-proposicoes-totais'),
+    path('arestas-similaridade-filtrada/', ArestasSimilaridadeFiltradaView.as_view(), name='arestas-similaridade-filtrada'),
+    path('arestas-coautoria-filtrada/', ArestasCoautoriaFiltradaView.as_view(), name='arestas-coautoria-filtrada'),
     path('', include(router.urls)),
 ]

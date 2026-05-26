@@ -65,6 +65,10 @@ class Proposicao(models.Model):
     ano = models.IntegerField(null=True, blank=True)
     ementa = models.TextField(null=True, blank=True)
     situacao = models.CharField(max_length=200, null=True, blank=True)
+    num_autores_deputados = models.IntegerField(
+        null=True, blank=True,
+        help_text='Qtd de deputados coautores desta proposição (cache denormalizado)'
+    )
 
     def __str__(self):
         return f'{self.sigla_tipo} {self.numero}/{self.ano}'
@@ -78,6 +82,10 @@ class Votacao(models.Model):
     proposicao = models.ForeignKey(Proposicao, on_delete=models.SET_NULL, null=True, blank=True)
     descricao = models.TextField(null=True, blank=True)
     aprovada = models.IntegerField(null=True, blank=True)
+    polarizacao = models.FloatField(
+        null=True, blank=True,
+        help_text='Fração do voto dominante (0.5 a 1.0). Ex: 0.95 = 95% votaram igual'
+    )
 
     def __str__(self):
         return f'Votação {self.id} em {self.data}'

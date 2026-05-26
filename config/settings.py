@@ -96,6 +96,15 @@ DATABASES = {
     }
 }
 
+# Cache para grafos filtrados
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'prisma-politico-cache',
+        'TIMEOUT': 86400,  # 24 horas
+    }
+}
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

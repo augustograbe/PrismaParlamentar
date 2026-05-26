@@ -544,6 +544,29 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
 
         const { separateBy, onlyActive, onlyWithConnections, presence, voteSimilarity, vertexSize, graphLayout } = filters;
         const communityKey = getCommunityCacheKey(graphType, filters);
+
+        // Se separar por comunidade, esperar as comunidades carregarem para evitar visualização cinza temporária
+        if (separateBy === 'comunidade') {
+            if (!dynamicCommunities || dynamicCommunities.key !== communityKey) {
+                setIsComputing(true);
+                return;
+            }
+        }
+
+        // Se usar tamanho por despesas/discursos/proposições, esperar carregar para evitar double-render/tamanho errado
+        if (vertexSize === 'despesas' && !expenseTotals) {
+            setIsComputing(true);
+            return;
+        }
+        if (vertexSize === 'discursos' && !speechTotals) {
+            setIsComputing(true);
+            return;
+        }
+        if (vertexSize === 'proposicoes' && !proposalTotals) {
+            setIsComputing(true);
+            return;
+        }
+
         const dynamicCommunityMap = dynamicCommunities?.key === communityKey
             ? dynamicCommunities.comunidades
             : null;
@@ -848,18 +871,11 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
             });
             onVisibleStatsChanged({ separateBy, groupCounts, groupColors, totalVisible });
         }
-    }, [graph, filters, dataLoaded, applyLayout, graphType, edgesVersion, onVisibleStatsChanged, dynamicCommunities, expenseTotals, speechTotals, proposalTotals]);
+    }, [graph, filters, dataLoaded, applyLayout, graphType, onVisibleStatsChanged, dynamicCommunities, expenseTotals, speechTotals, proposalTotals]);
 
     useEffect(() => {
         applyFilters();
-    }, [applyFilters]);
-
-    // Aplicar layout inicial quando dados carregam
-    useEffect(() => {
-        if (dataLoaded && !lastLayoutRef.current) {
-            setTimeout(() => applyLayout('forceatlas2_clusters'), 50);
-        }
-    }, [dataLoaded, applyLayout]);
+    }, [applyFilters, edgesVersion]);
 
     // Recalcular layout quando recalcKey muda (botão de recalcular)
     useEffect(() => {
@@ -868,6 +884,7 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
             lastLayoutRef.current = null; // force recalc
             setTimeout(() => applyLayout(layoutToApply, true), 50);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [recalcKey]); // intentionally minimal deps
 
     const containerStyle = {

@@ -41,13 +41,13 @@ Para rodar o projeto localmente, você precisará instalar em sua máquina:
    ```   
 Abra o navegador no endereço do Frontend apontado no terminal.
 
-## ⚙️ Inicialização Completa e Atualização Incremental (VPS)
+## ⚙️ Inicialização Completa e Atualização Incremental
 
-Para facilitar a implantação local e em servidores de produção (VPS como Hostinger), criamos scripts dedicados que gerenciam todo o ciclo de vida dos dados do Prisma Político.
+Para facilitar a implantação local e em servidores de produção, criamos scripts dedicados que gerenciam todo o ciclo de vida dos dados do Prisma Político.
 
 ### 🚀 1. Configuração Inicial do Projeto (`first_start.py`)
 
-Se você está rodando o projeto pela primeira vez ou acabou de clonar o repositório em sua VPS, execute o script automatizado de inicialização a partir do diretório raiz:
+Se você está rodando o projeto pela primeira vez ou acabou de clonar o repositório, execute o script automatizado de inicialização a partir do diretório raiz:
 ```bash
 python first_start.py
 ```
@@ -61,7 +61,7 @@ python first_start.py
 
 ### 🔄 2. Atualização Diária Incremental (`atualizar_dados`)
 
-Para manter os dados do seu site atualizados diariamente na VPS de forma rápida e leve, utilize o comando de atualização diária:
+Para manter os dados do site atualizados de forma rápida e leve, utilize o comando de atualização:
 ```bash
 python manage.py atualizar_dados
 ```

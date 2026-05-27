@@ -41,54 +41,65 @@ Para rodar o projeto localmente, você precisará instalar em sua máquina:
    ```   
 Abra o navegador no endereço do Frontend apontado no terminal.
 
-## Popular o Banco de Dados e Gerar Grafos
+## ⚙️ Inicialização Completa e Atualização Incremental (VPS)
 
-Para baixar os dados reais e gerar as estruturas de grafos e análises, execute os comandos abaixo na raiz do projeto:
+Para facilitar a implantação local e em servidores de produção (VPS como Hostinger), criamos scripts dedicados que gerenciam todo o ciclo de vida dos dados do Prisma Político.
 
-### 1. Coleta de Dados
+### 🚀 1. Configuração Inicial do Projeto (`first_start.py`)
 
-Os dados são coletados da API pública da Câmara dos Deputados.
-
-- **Coleta Principal** (Deputados, Partidos, Órgãos, Votações, Votos e Proposições):
-  ```bash
-  python manage.py coletar_api_camara
-  ```
-  *Nota: Esse script pode demorar alguns minutos pois faz múltiplas requisições.*
-
-- **Coleta de Presenças**:
-  ```bash
-  python manage.py coletar_presencas
-  ```
-
-- **Coleta de Discursos**:
-  ```bash
-  python manage.py coletar_discursos
-  ```
-
-### 2. Geração de Grafos
-
-Após coletar os dados, você pode gerar os grafos de conexões entre os deputados.
-
-- **Grafo de Similaridade de Votos**:
-  ```bash
-  python manage.py gerar_grafo_similaridade
-  ```
-
-- **Grafo de Coautoria**:
-  ```bash
-  python manage.py gerar_grafo_coautoria
-  ```
-
-- **Gerar Backbones** (Estruturas simplificadas dos grafos para otimização):
-  ```bash
-  python manage.py gerar_backbones
-  ```
-
-### 3. Geração de Análises
-
-Para gerar métricas, comunidades e estatísticas sobre os dados coletados:
-
+Se você está rodando o projeto pela primeira vez ou acabou de clonar o repositório em sua VPS, execute o script automatizado de inicialização a partir do diretório raiz:
 ```bash
-python manage.py gerar_analises --legislatura 57
+python first_start.py
 ```
+**O que este script faz:**
+1. Executa todas as migrações do Django (`migrate`).
+2. Popula o banco com os dados políticos completos de 2023 a 2026 para a legislatura 57.
+3. Coleta despesas, presenças e transcrições de discursos para todos os deputados.
+4. Gera e pré-calcula todos os grafos de similaridade e coautoria, seus backbones de rede (HSS e LANS) e as análises diárias.
 
+---
+
+### 🔄 2. Atualização Diária Incremental (`atualizar_dados`)
+
+Para manter os dados do seu site atualizados diariamente na VPS de forma rápida e leve, utilize o comando de atualização diária:
+```bash
+python manage.py atualizar_dados
+```
+**Características e Otimizações:**
+* **Busca Incremental:** Rastreia a data do último update bem-sucedido e busca na API da Câmara apenas o que mudou desde então.
+* **Sobrescrita de Data:** Você pode forçar a busca a partir de uma data específica com o argumento `--desde AAAA-MM-DD` (ex: `--desde 2026-05-20`).
+* **Despesas Eficientes:** Re-importa automaticamente apenas a tabela consolidada do ano corrente para capturar alterações e inserções retroativas de forma ultrarrápida.
+* **Registro de Logs de Operação:** Grava um histórico detalhado de cada execução (sucesso/falha, tempo decorrido, erros e quantidade de registros modificados por tabela) visível na tabela **Execução de Update de Dados** no Django Admin.
+* **Sincronização Integrada:** Recalcula de forma automatizada toda a malha de grafos, metadados e gráficos estilo GitHub ao final de cada execução com sucesso.
+
+
+
+## 🛠️ Comandos de Gerenciamento Disponíveis (Django Commands)
+
+Se você preferir executar as etapas individualmente para testes ou desenvolvimento, os seguintes comandos Django (`python manage.py <comando>`) estão disponíveis:
+
+### 1. Coleta de Dados (`coleta_dados`)
+*   `coletar_api_camara --legislatura 57 --ano-inicio 2023 --ano-fim 2026`
+    Coleta dados estruturais básicos (Partidos, Deputados, Órgãos, cabeçalhos de Votações e Proposições com seus autores).
+*   `coletar_despesas --ano 2023 2024 2025 2026 --deputado <id>`
+    Baixa os arquivos compactados de despesas parlamentares anuais e popula o banco de dados. Permite filtragem por deputado específico.
+*   `coletar_discursos --legislatura 57 --ano-inicio 2023 --ano-fim 2026`
+    Coleta as transcrições das falas e discursos de cada deputado no período.
+*   `coletar_presencas --legislatura 57 --ano-inicio 2023 --ano-fim 2026`
+    Coleta a presença dos parlamentares em sessões plenárias e de comissões.
+*   `seed_data`
+    Remove a base existente e popula com dados fictícios de teste e similaridades aleatórias (ideal para validar layouts do frontend sem gastar conexões de rede).
+
+### 2. Processamento de Grafos (`grafos`)
+*   `gerar_grafo_similaridade --legislatura 57`
+    Calcula a similaridade percentual de votos entre todos os pares possíveis de deputados baseada nas votações nominais.
+*   `gerar_grafo_coautoria --legislatura 57`
+    Calcula o número de coautorias de Projetos de Lei (PL) entre todos os pares de deputados.
+*   `calcular_metadados_grafos`
+    Calcula de forma desnormalizada a polarização de cada votação e o número total de autores de cada proposição.
+*   `gerar_backbones --legislatura 57 --densidade-votos 0.1 --densidade-coautoria 0.05`
+    Pré-calcula os backbones simplificados da rede (High Salience Skeleton e LANS) para otimização de renderização e performance no frontend.
+
+### 3. Geração de Análises (`analises`)
+*   `gerar_analises --legislatura 57`
+    Recalcula a taxa de presença consolidada de cada deputado e gera o histórico detalhado de contribuições diárias (`AtividadeDiaria`) utilizado para renderizar o gráfico estilo GitHub no perfil do deputado.

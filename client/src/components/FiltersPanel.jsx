@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from 'react';
 import Frame from './Frame';
 import Dropdown from './Dropdown';
@@ -13,7 +14,7 @@ import { COLORS, SPACING, FONTS } from '../constants/theme';
  * Props:
  * - onApply: callback (filters) ao clicar em Aplicar
  */
-export default function FiltersPanel({ onApply, graphType = 'similaridade', maxCoautoriaLimit = 50, isMinimized, onToggleMinimize }) {
+export default function FiltersPanel({ filters, onApply, graphType = 'similaridade', maxCoautoriaLimit = 50, isMinimized, onToggleMinimize }) {
     const [separateBy, setSeparateBy] = useState('partido');
     const [onlyActive, setOnlyActive] = useState(true);
     const [highlightPinned, setHighlightPinned] = useState(true);
@@ -73,6 +74,35 @@ export default function FiltersPanel({ onApply, graphType = 'similaridade', maxC
     useEffect(() => {
         setCoautoria({ min: 1, max: maxCoautoriaLimit });
     }, [maxCoautoriaLimit]);
+
+    useEffect(() => {
+        if (filters) {
+            if (filters.separateBy !== undefined) setSeparateBy(filters.separateBy);
+            if (filters.onlyActive !== undefined) setOnlyActive(filters.onlyActive);
+            if (filters.highlightPinned !== undefined) setHighlightPinned(filters.highlightPinned);
+            if (filters.onlyWithConnections !== undefined) setOnlyWithConnections(filters.onlyWithConnections);
+            if (filters.presence) setPresence(filters.presence);
+            if (filters.voteSimilarity) setVoteSimilarity(filters.voteSimilarity);
+            if (filters.coautoria) setCoautoria(filters.coautoria);
+            if (filters.vertexSize !== undefined) setVertexSize(filters.vertexSize);
+            if (filters.graphLayout !== undefined) setGraphLayout(filters.graphLayout);
+            if (filters.communityAlgorithm !== undefined) setCommunityAlgorithm(filters.communityAlgorithm);
+            if (filters.backboneEnabled !== undefined) setBackboneEnabled(filters.backboneEnabled);
+            if (filters.backboneMethod !== undefined) setBackboneMethod(filters.backboneMethod);
+            if (filters.coautoresRange) setCoautoresRange(filters.coautoresRange);
+            if (filters.polarizacaoRange) setPolarizacaoRange(filters.polarizacaoRange);
+            
+            if (filters.expenseCategory !== undefined) setSelectedExpenseCategory(filters.expenseCategory);
+            if (filters.expenseYear !== undefined) setSelectedExpenseYear(filters.expenseYear);
+            if (filters.proposalType !== undefined) setSelectedProposalType(filters.proposalType);
+            
+            if (filters.proposalTypes) {
+                setPlChecked(filters.proposalTypes.includes('PL'));
+                setPlpChecked(filters.proposalTypes.includes('PLP'));
+                setPecChecked(filters.proposalTypes.includes('PEC'));
+            }
+        }
+    }, [filters]);
 
     const separateOptions = [
         { value: 'partido', label: 'Partido' },

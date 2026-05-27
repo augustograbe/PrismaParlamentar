@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import TopBar from '../components/layout/TopBar';
 import RankingPanel from '../components/RankingPanel';
 import ListFiltersPanel from '../components/ListFiltersPanel';
@@ -36,12 +37,87 @@ function savePinnedToStorage(pinned) {
  * Deputados - Página de listagem de deputados
  * Tabela paginada com painéis laterais (Ranking, Filtros, Campos, Fixados)
  */
+const DEFAULT_DEPUTADOS_FILTERS = {
+    onlyActive: true,
+    presence: { min: 0, max: 100 }
+};
+
+const DEFAULT_DEPUTADOS_FIELDS = [
+    'nome', 'sigla_partido', 'sigla_uf', 'presenca', 'situacao'
+];
+
+function serializeDeputadosParams({ filters, sortBy, selectedFields, currentPage, expenseCategory, expenseYear, proposalType }) {
+    const params = {};
+    params.onlyActive = String(filters.onlyActive);
+    params.presence_min = String(filters.presence.min);
+    params.presence_max = String(filters.presence.max);
+    params.sortBy = sortBy;
+    params.fields = selectedFields.join(',');
+    params.page = String(currentPage);
+    params.expenseCategory = expenseCategory || 'Todas';
+    params.expenseYear = expenseYear || 'mandato';
+    params.proposalType = proposalType || 'PL+PLP+PEC';
+    return params;
+}
+
+function deserializeDeputadosParams(searchParams) {
+    const getBool = (key, def) => {
+        const val = searchParams.get(key);
+        if (val === null) return def;
+        return val === 'true';
+    };
+    
+    const getNum = (key, def) => {
+        const val = searchParams.get(key);
+        if (val === null) return def;
+        const num = Number(val);
+        return isNaN(num) ? def : num;
+    };
+    
+    const getStr = (key, def) => {
+        const val = searchParams.get(key);
+        return val !== null ? val : def;
+    };
+    
+    const filters = {
+        onlyActive: getBool('onlyActive', DEFAULT_DEPUTADOS_FILTERS.onlyActive),
+        presence: {
+            min: getNum('presence_min', DEFAULT_DEPUTADOS_FILTERS.presence.min),
+            max: getNum('presence_max', DEFAULT_DEPUTADOS_FILTERS.presence.max)
+        }
+    };
+    
+    const sortBy = getStr('sortBy', 'nome_asc');
+    
+    const fieldsStr = searchParams.get('fields');
+    const selectedFields = fieldsStr ? fieldsStr.split(',') : [...DEFAULT_DEPUTADOS_FIELDS];
+    
+    const currentPage = getNum('page', 1);
+    
+    const expenseCategory = getStr('expenseCategory', 'Todas');
+    const expenseYear = getStr('expenseYear', 'mandato');
+    const proposalType = getStr('proposalType', 'PL+PLP+PEC');
+    
+    return {
+        filters,
+        sortBy,
+        selectedFields,
+        currentPage,
+        expenseCategory,
+        expenseYear,
+        proposalType
+    };
+}
+
 export default function Deputados() {
+    const [searchParams, setSearchParams] = useSearchParams();
+    const initialParams = useMemo(() => deserializeDeputadosParams(searchParams), [searchParams]);
+
     const [allDeputies, setAllDeputies] = useState([]);
     const [loading, setLoading] = useState(true);
     const [pinnedDeputies, setPinnedDeputies] = useState(() => loadPinnedFromStorage());
     const [profileDeputy, setProfileDeputy] = useState(null);
-    const [currentPage, setCurrentPage] = useState(1);
+    const [currentPage, setCurrentPage] = useState(() => initialParams.currentPage);
     const [openPanel, setOpenPanel] = useState('filtros');
     const [highlightedDeputyId, setHighlightedDeputyId] = useState(null);
     const [hoveredRowId, setHoveredRowId] = useState(null);
@@ -49,24 +125,77 @@ export default function Deputados() {
     const [proposalTotals, setProposalTotals] = useState({});
     const [expenseTotals, setExpenseTotals] = useState({});
     const [expenseCategories, setExpenseCategories] = useState([]);
-    const [selectedExpenseCategory, setSelectedExpenseCategory] = useState('Todas');
-    const [selectedExpenseYear, setSelectedExpenseYear] = useState('mandato');
-    const [selectedProposalType, setSelectedProposalType] = useState('PL+PLP+PEC');
+    const [selectedExpenseCategory, setSelectedExpenseCategory] = useState(() => initialParams.expenseCategory);
+    const [selectedExpenseYear, setSelectedExpenseYear] = useState(() => initialParams.expenseYear);
+    const [selectedProposalType, setSelectedProposalType] = useState(() => initialParams.proposalType);
     const [dynamicFieldTotals, setDynamicFieldTotals] = useState({});
 
     // Filters
-    const [filters, setFilters] = useState({
-        onlyActive: true,
-        presence: { min: 0, max: 100 },
-    });
+    const [filters, setFilters] = useState(() => initialParams.filters);
 
     // Sort
-    const [sortBy, setSortBy] = useState('nome_asc');
+    const [sortBy, setSortBy] = useState(() => initialParams.sortBy);
 
     // Fields (columns)
-    const [selectedFields, setSelectedFields] = useState([
-        'nome', 'sigla_partido', 'sigla_uf', 'presenca', 'situacao',
-    ]);
+    const [selectedFields, setSelectedFields] = useState(() => initialParams.selectedFields);
+
+    const searchParamsString = searchParams.toString();
+
+    // 1. Sync URL -> States on mount or when URL changes
+    useEffect(() => {
+        const params = deserializeDeputadosParams(searchParams);
+        
+        setFilters(prev => {
+            if (prev.onlyActive === params.filters.onlyActive &&
+                prev.presence.min === params.filters.presence.min &&
+                prev.presence.max === params.filters.presence.max) {
+                return prev;
+            }
+            return params.filters;
+        });
+        
+        setSortBy(prev => prev === params.sortBy ? prev : params.sortBy);
+        
+        setSelectedFields(prev => {
+            if (prev.length === params.selectedFields.length &&
+                prev.every((f, i) => f === params.selectedFields[i])) {
+                return prev;
+            }
+            return params.selectedFields;
+        });
+        
+        setCurrentPage(prev => prev === params.currentPage ? prev : params.currentPage);
+        setSelectedExpenseCategory(prev => prev === params.expenseCategory ? prev : params.expenseCategory);
+        setSelectedExpenseYear(prev => prev === params.expenseYear ? prev : params.expenseYear);
+        setSelectedProposalType(prev => prev === params.proposalType ? prev : params.proposalType);
+        
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchParamsString]);
+
+    // 2. Sync States -> URL when states change
+    useEffect(() => {
+        const nextParams = serializeDeputadosParams({
+            filters,
+            sortBy,
+            selectedFields,
+            currentPage,
+            expenseCategory: selectedExpenseCategory,
+            expenseYear: selectedExpenseYear,
+            proposalType: selectedProposalType
+        });
+        
+        let changed = false;
+        for (const key of Object.keys(nextParams)) {
+            if (searchParams.get(key) !== nextParams[key]) {
+                changed = true;
+                break;
+            }
+        }
+        
+        if (changed) {
+            setSearchParams(nextParams, { replace: true });
+        }
+    }, [filters, sortBy, selectedFields, currentPage, selectedExpenseCategory, selectedExpenseYear, selectedProposalType, setSearchParams, searchParams]);
 
     // Persist pinned list
     useEffect(() => {
@@ -786,6 +915,7 @@ export default function Deputados() {
 
                 <div style={{ pointerEvents: 'auto', flex: openPanel === 'filtros' ? '0 1 auto' : '0 0 auto', minHeight: 0 }}>
                     <ListFiltersPanel
+                        filters={filters}
                         onApply={handleApplyFilters}
                         isMinimized={openPanel !== 'filtros'}
                         onToggleMinimize={() => handleTogglePanel('filtros')}

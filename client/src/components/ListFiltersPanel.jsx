@@ -1,4 +1,5 @@
-import { useState } from 'react';
+/* eslint-disable react-hooks/set-state-in-effect */
+import { useState, useEffect } from 'react';
 import Frame from './Frame';
 import Checkbox from './Checkbox';
 import RangeSlider from './RangeSlider';
@@ -12,9 +13,16 @@ import { COLORS, SPACING } from '../constants/theme';
  * - onApply: callback (filters)
  * - isMinimized / onToggleMinimize
  */
-export default function ListFiltersPanel({ onApply, isMinimized, onToggleMinimize }) {
+export default function ListFiltersPanel({ filters, onApply, isMinimized, onToggleMinimize }) {
     const [onlyActive, setOnlyActive] = useState(true);
     const [presence, setPresence] = useState({ min: 0, max: 100 });
+
+    useEffect(() => {
+        if (filters) {
+            if (filters.onlyActive !== undefined) setOnlyActive(filters.onlyActive);
+            if (filters.presence) setPresence(filters.presence);
+        }
+    }, [filters]);
 
     const filterIcon = (
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">

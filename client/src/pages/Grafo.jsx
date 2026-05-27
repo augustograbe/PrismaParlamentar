@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import TopBar from '../components/layout/TopBar';
 import FiltersPanel from '../components/FiltersPanel';
 import InfoFrame from '../components/layout/InfoFrame';
@@ -67,11 +68,145 @@ function getGroupLabel(key, separateBy) {
  * Grafo - Página principal com visualização de grafos
  * Orquestra todos os componentes: grafo no fundo + frames flutuantes por cima
  */
+const DEFAULT_GRAFO_FILTERS = {
+    separateBy: 'partido',
+    onlyActive: true,
+    highlightPinned: true,
+    onlyWithConnections: false,
+    presence: { min: 0, max: 100 },
+    voteSimilarity: { min: 80, max: 100 },
+    coautoria: { min: 1, max: 50 },
+    vertexSize: 'padrao',
+    graphLayout: 'forceatlas2_clusters',
+    backboneEnabled: false,
+    backboneMethod: 'lans',
+    coautoresRange: { min: 2, max: 333 },
+    polarizacaoRange: { min: 50, max: 100 },
+    proposalTypes: ['PL'],
+    expenseCategory: 'Todas',
+    expenseYear: 'mandato',
+    proposalType: 'PL+PLP+PEC',
+    communityAlgorithm: 'louvain'
+};
+
+function serializeGrafoFilters(filters, graphType) {
+    const params = {};
+    params.graphType = graphType;
+    params.separateBy = filters.separateBy;
+    params.onlyActive = String(filters.onlyActive);
+    params.highlightPinned = String(filters.highlightPinned);
+    params.onlyWithConnections = String(filters.onlyWithConnections);
+    params.presence_min = String(filters.presence.min);
+    params.presence_max = String(filters.presence.max);
+    
+    if (graphType === 'similaridade') {
+        params.voteSimilarity_min = String(filters.voteSimilarity.min);
+        params.voteSimilarity_max = String(filters.voteSimilarity.max);
+    } else {
+        params.coautoria_min = String(filters.coautoria.min);
+        params.coautoria_max = String(filters.coautoria.max);
+    }
+    
+    params.vertexSize = filters.vertexSize;
+    if (filters.vertexSize === 'despesas') {
+        params.expenseCategory = filters.expenseCategory || 'Todas';
+        params.expenseYear = filters.expenseYear || 'mandato';
+    } else if (filters.vertexSize === 'proposicoes') {
+        params.proposalType = filters.proposalType || 'PL+PLP+PEC';
+    }
+    
+    params.graphLayout = filters.graphLayout;
+    params.communityAlgorithm = filters.communityAlgorithm || 'louvain';
+    params.backboneEnabled = String(filters.backboneEnabled);
+    params.backboneMethod = filters.backboneMethod || 'lans';
+    
+    if (graphType === 'coautoria') {
+        params.coautores_min = String(filters.coautoresRange?.min ?? 2);
+        params.coautores_max = String(filters.coautoresRange?.max ?? 333);
+        params.proposalTypes = (filters.proposalTypes || ['PL']).join(',');
+    } else {
+        params.polarizacao_min = String(filters.polarizacaoRange?.min ?? 50);
+        params.polarizacao_max = String(filters.polarizacaoRange?.max ?? 100);
+    }
+    
+    return params;
+}
+
+function deserializeGrafoFilters(searchParams) {
+    const filters = { ...DEFAULT_GRAFO_FILTERS };
+    
+    const getBool = (key, def) => {
+        const val = searchParams.get(key);
+        if (val === null) return def;
+        return val === 'true';
+    };
+    
+    const getNum = (key, def) => {
+        const val = searchParams.get(key);
+        if (val === null) return def;
+        const num = Number(val);
+        return isNaN(num) ? def : num;
+    };
+    
+    const getStr = (key, def) => {
+        const val = searchParams.get(key);
+        return val !== null ? val : def;
+    };
+    
+    filters.separateBy = getStr('separateBy', DEFAULT_GRAFO_FILTERS.separateBy);
+    filters.onlyActive = getBool('onlyActive', DEFAULT_GRAFO_FILTERS.onlyActive);
+    filters.highlightPinned = getBool('highlightPinned', DEFAULT_GRAFO_FILTERS.highlightPinned);
+    filters.onlyWithConnections = getBool('onlyWithConnections', DEFAULT_GRAFO_FILTERS.onlyWithConnections);
+    
+    filters.presence = {
+        min: getNum('presence_min', DEFAULT_GRAFO_FILTERS.presence.min),
+        max: getNum('presence_max', DEFAULT_GRAFO_FILTERS.presence.max)
+    };
+    
+    filters.voteSimilarity = {
+        min: getNum('voteSimilarity_min', DEFAULT_GRAFO_FILTERS.voteSimilarity.min),
+        max: getNum('voteSimilarity_max', DEFAULT_GRAFO_FILTERS.voteSimilarity.max)
+    };
+    
+    filters.coautoria = {
+        min: getNum('coautoria_min', DEFAULT_GRAFO_FILTERS.coautoria.min),
+        max: getNum('coautoria_max', DEFAULT_GRAFO_FILTERS.coautoria.max)
+    };
+    
+    filters.vertexSize = getStr('vertexSize', DEFAULT_GRAFO_FILTERS.vertexSize);
+    filters.expenseCategory = getStr('expenseCategory', DEFAULT_GRAFO_FILTERS.expenseCategory);
+    filters.expenseYear = getStr('expenseYear', DEFAULT_GRAFO_FILTERS.expenseYear);
+    filters.proposalType = getStr('proposalType', DEFAULT_GRAFO_FILTERS.proposalType);
+    
+    filters.graphLayout = getStr('graphLayout', DEFAULT_GRAFO_FILTERS.graphLayout);
+    filters.communityAlgorithm = getStr('communityAlgorithm', DEFAULT_GRAFO_FILTERS.communityAlgorithm);
+    filters.backboneEnabled = getBool('backboneEnabled', DEFAULT_GRAFO_FILTERS.backboneEnabled);
+    filters.backboneMethod = getStr('backboneMethod', DEFAULT_GRAFO_FILTERS.backboneMethod);
+    
+    filters.coautoresRange = {
+        min: getNum('coautores_min', DEFAULT_GRAFO_FILTERS.coautoresRange.min),
+        max: getNum('coautores_max', DEFAULT_GRAFO_FILTERS.coautoresRange.max)
+    };
+    
+    filters.polarizacaoRange = {
+        min: getNum('polarizacao_min', DEFAULT_GRAFO_FILTERS.polarizacaoRange.min),
+        max: getNum('polarizacao_max', DEFAULT_GRAFO_FILTERS.polarizacaoRange.max)
+    };
+    
+    const propTypes = searchParams.get('proposalTypes');
+    filters.proposalTypes = propTypes ? propTypes.split(',') : DEFAULT_GRAFO_FILTERS.proposalTypes;
+    
+    return filters;
+}
+
 export default function Grafo() {
+    const [searchParams, setSearchParams] = useSearchParams();
+    
     const [selectedDeputy, setSelectedDeputy] = useState(null);
     const [profileDeputy, setProfileDeputy] = useState(null);
     const [deputyList, setDeputyList] = useState([]);
-    const [graphType, setGraphType] = useState('similaridade');
+    
+    const [graphType, setGraphType] = useState(() => searchParams.get('graphType') || 'similaridade');
     const [maxCoautoriaLimit, setMaxCoautoriaLimit] = useState(50);
     const [pinnedDeputies, setPinnedDeputies] = useState(() => loadPinnedFromStorage());
     const [legendData, setLegendData] = useState([]);
@@ -81,22 +216,64 @@ export default function Grafo() {
     const [hoveredConnectionNode, setHoveredConnectionNode] = useState(null);
     const [openPanel, setOpenPanel] = useState('filtros'); // estado para o painel aberto
     const [recalcKey, setRecalcKey] = useState(0);
-    const [filters, setFilters] = useState({
-        separateBy: 'partido',
-        onlyActive: true,
-        highlightPinned: true,
-        onlyWithConnections: false,
-        presence: { min: 0, max: 100 },
-        voteSimilarity: { min: 80, max: 100 },
-        coautoria: { min: 1, max: 50 },
-        vertexSize: 'padrao',
-        graphLayout: 'forceatlas2_clusters',
-        backboneEnabled: false,
-        backboneMethod: 'lans',
-        coautoresRange: { min: 2, max: 333 },
-        polarizacaoRange: { min: 50, max: 100 },
-        proposalTypes: ['PL'],
-    });
+    const [filters, setFilters] = useState(() => deserializeGrafoFilters(searchParams));
+
+    const searchParamsString = searchParams.toString();
+
+    // 1. Sync URL -> States
+    useEffect(() => {
+        const params = deserializeGrafoFilters(searchParams);
+        
+        setFilters(prev => {
+            if (prev.separateBy === params.separateBy &&
+                prev.onlyActive === params.onlyActive &&
+                prev.highlightPinned === params.highlightPinned &&
+                prev.onlyWithConnections === params.onlyWithConnections &&
+                prev.presence.min === params.presence.min &&
+                prev.presence.max === params.presence.max &&
+                prev.voteSimilarity.min === params.voteSimilarity.min &&
+                prev.voteSimilarity.max === params.voteSimilarity.max &&
+                prev.coautoria.min === params.coautoria.min &&
+                prev.coautoria.max === params.coautoria.max &&
+                prev.vertexSize === params.vertexSize &&
+                prev.expenseCategory === params.expenseCategory &&
+                prev.expenseYear === params.expenseYear &&
+                prev.proposalType === params.proposalType &&
+                prev.graphLayout === params.graphLayout &&
+                prev.communityAlgorithm === params.communityAlgorithm &&
+                prev.backboneEnabled === params.backboneEnabled &&
+                prev.backboneMethod === params.backboneMethod &&
+                prev.coautoresRange.min === params.coautoresRange.min &&
+                prev.coautoresRange.max === params.coautoresRange.max &&
+                prev.polarizacaoRange.min === params.polarizacaoRange.min &&
+                prev.polarizacaoRange.max === params.polarizacaoRange.max &&
+                prev.proposalTypes.length === params.proposalTypes.length &&
+                prev.proposalTypes.every((val, idx) => val === params.proposalTypes[idx])) {
+                return prev;
+            }
+            return params;
+        });
+        
+        setGraphType(prev => prev === (searchParams.get('graphType') || 'similaridade') ? prev : (searchParams.get('graphType') || 'similaridade'));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchParamsString]);
+
+    // 2. Sync States -> URL
+    useEffect(() => {
+        const nextParams = serializeGrafoFilters(filters, graphType);
+        
+        let changed = false;
+        for (const key of Object.keys(nextParams)) {
+            if (searchParams.get(key) !== nextParams[key]) {
+                changed = true;
+                break;
+            }
+        }
+        
+        if (changed) {
+            setSearchParams(nextParams, { replace: true });
+        }
+    }, [filters, graphType, setSearchParams, searchParams]);
 
     // Persist pinned list to localStorage whenever it changes
     useEffect(() => {
@@ -383,6 +560,7 @@ export default function Grafo() {
 
                 {/* Painel de filtros */}
                 <FiltersPanel 
+                    filters={filters}
                     onApply={handleApplyFilters} 
                     graphType={graphType} 
                     maxCoautoriaLimit={maxCoautoriaLimit}

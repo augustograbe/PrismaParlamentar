@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import TopBar from '../components/layout/TopBar';
 import FiltersPanel from '../components/FiltersPanel';
@@ -9,8 +9,10 @@ import PinnedPanel from '../components/PinnedPanel';
 import LegendPanel from '../components/LegendPanel';
 import GraphContainer from '../components/graph/GraphContainer';
 import Frame from '../components/Frame';
+import Checkbox from '../components/Checkbox';
 import Tooltip from '../components/Tooltip';
-import { COLORS, SPACING, FONTS, PARTY_COLORS, STATE_COLORS, SEX_COLORS } from '../constants/theme';
+import ExportPanel from '../components/ExportPanel';
+import { COLORS, SPACING, FONTS, PARTY_COLORS, STATE_COLORS, SEX_COLORS, SHADOWS } from '../constants/theme';
 import { useIsMobile } from '../utils/useIsMobile';
 
 const PINNED_STORAGE_KEY = 'prisma_politico_pinned';
@@ -218,6 +220,17 @@ export default function Grafo() {
     const [hoveredConnectionNode, setHoveredConnectionNode] = useState(null);
     const [openPanel, setOpenPanel] = useState(null); // estado para o painel aberto
     const [recalcKey, setRecalcKey] = useState(0);
+    const [sigmaInstance, setSigmaInstance] = useState(null);
+    const [previewImage, setPreviewImage] = useState(null);
+    const [addLegend, setAddLegend] = useState(false);
+    const [legendScale, setLegendScale] = useState("1.0");
+    const [showHighlightOverlay, setShowHighlightOverlay] = useState(false);
+
+    // Estados e Refs para corte (crop) interativo do preview
+    const [cropPercent, setCropPercent] = useState({ x: 0, y: 0, w: 100, h: 100 });
+    const [imgSize, setImgSize] = useState({ width: 0, height: 0 });
+    const baseCanvasRef = useRef(null);
+    const imgRef = useRef(null);
     const [graphSelectOpen, setGraphSelectOpen] = useState(false);
     const [filters, setFilters] = useState(() => deserializeGrafoFilters(searchParams));
 
@@ -318,6 +331,258 @@ export default function Grafo() {
     const handleTogglePanel = useCallback((panelId) => {
         setOpenPanel(prev => prev === panelId ? null : panelId);
     }, []);
+
+    const handleImageLoad = useCallback(() => {
+        if (imgRef.current) {
+            setImgSize({
+                width: imgRef.current.clientWidth,
+                height: imgRef.current.clientHeight
+            });
+        }
+    }, []);
+
+    // Sincroniza o tamanho da imagem quando ela abrir
+    useEffect(() => {
+        if (previewImage) {
+            const timer = setTimeout(() => {
+                handleImageLoad();
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+    }, [previewImage, handleImageLoad]);
+
+    const handleMouseDown = useCallback((e, action) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const startCrop = { ...cropPercent };
+        
+        const handleMouseMove = (moveEvent) => {
+            const deltaX = moveEvent.clientX - startX;
+            const deltaY = moveEvent.clientY - startY;
+            
+            const deltaXPct = (deltaX / imgSize.width) * 100;
+            const deltaYPct = (deltaY / imgSize.height) * 100;
+            
+            setCropPercent(() => {
+                let nextX = startCrop.x;
+                let nextY = startCrop.y;
+                let nextW = startCrop.w;
+                let nextH = startCrop.h;
+                
+                const sortedLegendLength = Math.min(10, legendData.length);
+                const pixelRatio = window.devicePixelRatio || 1;
+                const canvasWidthCss = baseCanvasRef.current ? baseCanvasRef.current.width / pixelRatio : 1;
+                const displayRatio = imgSize.width > 0 ? imgSize.width / canvasWidthCss : 1;
+                const scale = parseFloat(legendScale) * displayRatio;
+                const minWidthPx = addLegend ? 220 * scale + 32 : 80;
+                const minHeightPx = addLegend ? (12 + sortedLegendLength * 20 + 8) * scale + 32 : 80;
+                
+                const minWPct = Math.min(95, (minWidthPx / imgSize.width) * 100);
+                const minHPct = Math.min(95, (minHeightPx / imgSize.height) * 100);
+                
+                if (action === 'move') {
+                    nextX = Math.max(0, Math.min(100 - startCrop.w, startCrop.x + deltaXPct));
+                    nextY = Math.max(0, Math.min(100 - startCrop.h, startCrop.y + deltaYPct));
+                } else {
+                    if (action.includes('w')) {
+                        const limitX = startCrop.x + startCrop.w - minWPct;
+                        nextX = Math.max(0, Math.min(limitX, startCrop.x + deltaXPct));
+                        nextW = startCrop.x + startCrop.w - nextX;
+                    }
+                    if (action.includes('e')) {
+                        nextW = Math.max(minWPct, Math.min(100 - startCrop.x, startCrop.w + deltaXPct));
+                    }
+                    if (action.includes('n')) {
+                        const limitY = startCrop.y + startCrop.h - minHPct;
+                        nextY = Math.max(0, Math.min(limitY, startCrop.y + deltaYPct));
+                        nextH = startCrop.y + startCrop.h - nextY;
+                    }
+                    if (action.includes('s')) {
+                        nextH = Math.max(minHPct, Math.min(100 - startCrop.y, startCrop.h + deltaYPct));
+                    }
+                }
+                
+                return { x: nextX, y: nextY, w: nextW, h: nextH };
+            });
+        };
+        
+        const handleMouseUp = () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+        
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+    }, [cropPercent, imgSize, legendData, legendScale, addLegend]);
+
+    const handleShowPreview = useCallback(() => {
+        if (!sigmaInstance) return;
+
+        try {
+            // 1. Get the container size
+            const container = sigmaInstance.getContainer();
+            const width = container.offsetWidth;
+            const height = container.offsetHeight;
+            const pixelRatio = window.devicePixelRatio || 1;
+
+            // Force WebGL to redraw in this event loop tick, so drawing buffer is full
+            sigmaInstance.refresh();
+
+            // 2. Create the target canvas to merge the layers
+            const canvas = document.createElement("canvas");
+            canvas.width = width * pixelRatio;
+            canvas.height = height * pixelRatio;
+            const ctx = canvas.getContext("2d");
+
+            // Fill background white
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 3. Copy all canvases in DOM order
+            const canvases = container.querySelectorAll("canvas");
+            canvases.forEach(c => {
+                ctx.drawImage(c, 0, 0, canvas.width, canvas.height);
+            });
+
+            // 4. Crop the canvas to the specified area (excluding sidebar/topbar)
+            const cropX = 16 * pixelRatio;
+            const cropY = 68 * pixelRatio;
+            const cropWidth = Math.max(100, (width - 266 - 16) * pixelRatio);
+            const cropHeight = Math.max(100, (height - 68 - 16) * pixelRatio);
+
+            const croppedCanvas = document.createElement("canvas");
+            croppedCanvas.width = cropWidth;
+            croppedCanvas.height = cropHeight;
+            const croppedCtx = croppedCanvas.getContext("2d");
+
+            // Copy the cropped region from the merged canvas
+            croppedCtx.drawImage(
+                canvas,
+                cropX, cropY, cropWidth, cropHeight,
+                0, 0, cropWidth, cropHeight
+            );
+
+            // Store the base canvas reference for final export
+            baseCanvasRef.current = croppedCanvas;
+
+            // Convert canvas to Data URL and show preview
+            const dataUrl = croppedCanvas.toDataURL("image/png");
+            setPreviewImage(dataUrl);
+
+            // Reset crop coordinates
+            setCropPercent({ x: 0, y: 0, w: 100, h: 100 });
+            setImgSize({ width: 0, height: 0 });
+        } catch (error) {
+            console.error("Erro ao gerar imagem do grafo:", error);
+        }
+    }, [sigmaInstance]);
+
+    const handleDownloadImage = useCallback(() => {
+        if (!baseCanvasRef.current) return;
+        
+        try {
+            const canvas = baseCanvasRef.current;
+            const pixelRatio = window.devicePixelRatio || 1;
+            
+            // Calculate pixel crop coordinates
+            const pxX = (cropPercent.x / 100) * canvas.width;
+            const pxY = (cropPercent.y / 100) * canvas.height;
+            const pxW = (cropPercent.w / 100) * canvas.width;
+            const pxH = (cropPercent.h / 100) * canvas.height;
+            
+            const exportCanvas = document.createElement("canvas");
+            exportCanvas.width = pxW;
+            exportCanvas.height = pxH;
+            const exportCtx = exportCanvas.getContext("2d");
+            
+            // Copy the cropped region
+            exportCtx.drawImage(
+                canvas,
+                pxX, pxY, pxW, pxH,
+                0, 0, pxW, pxH
+            );
+            
+            // Draw legend if checked
+            if (addLegend && legendData.length > 0) {
+                const scale = parseFloat(legendScale);
+                const legendWidth = 220 * pixelRatio * scale;
+                const sortedLegend = [...legendData].sort((a, b) => b.count - a.count).slice(0, 10);
+                const legendHeight = (12 + sortedLegend.length * 20 + 8) * pixelRatio * scale;
+                
+                const legendX = pxW - legendWidth - 16 * pixelRatio;
+                const legendY = pxH - legendHeight - 16 * pixelRatio;
+                
+                // Draw rounded rect background
+                exportCtx.save();
+                exportCtx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+                exportCtx.shadowBlur = 10 * pixelRatio * scale;
+                exportCtx.shadowOffsetX = 0;
+                exportCtx.shadowOffsetY = 4 * pixelRatio * scale;
+                exportCtx.fillStyle = '#ffffff';
+                
+                const r = 8 * pixelRatio * scale;
+                exportCtx.beginPath();
+                exportCtx.moveTo(legendX + r, legendY);
+                exportCtx.lineTo(legendX + legendWidth - r, legendY);
+                exportCtx.quadraticCurveTo(legendX + legendWidth, legendY, legendX + legendWidth, legendY + r);
+                exportCtx.lineTo(legendX + legendWidth, legendY + legendHeight - r);
+                exportCtx.quadraticCurveTo(legendX + legendWidth, legendY + legendHeight, legendX + legendWidth - r, legendY + legendHeight);
+                exportCtx.lineTo(legendX + r, legendY + legendHeight);
+                exportCtx.quadraticCurveTo(legendX, legendY + legendHeight, legendX, legendY + legendHeight - r);
+                exportCtx.lineTo(legendX, legendY + r);
+                exportCtx.quadraticCurveTo(legendX, legendY, legendX + r, legendY);
+                exportCtx.closePath();
+                exportCtx.fill();
+                
+                // Draw border
+                exportCtx.shadowBlur = 0;
+                exportCtx.shadowOffsetY = 0;
+                exportCtx.lineWidth = 1 * pixelRatio * scale;
+                exportCtx.strokeStyle = '#e0e0e0';
+                exportCtx.stroke();
+                
+                // Draw legend items
+                let currentY = legendY + 18 * pixelRatio * scale;
+                sortedLegend.forEach(item => {
+                    // Circle dot
+                    exportCtx.beginPath();
+                    exportCtx.arc(legendX + 18 * pixelRatio * scale, currentY - 4 * pixelRatio * scale, 4 * pixelRatio * scale, 0, Math.PI * 2);
+                    exportCtx.fillStyle = item.color;
+                    exportCtx.fill();
+                    
+                    // Name label
+                    exportCtx.font = `500 ${Math.round(11 * pixelRatio * scale)}px Inter, "Segoe UI", sans-serif`;
+                    exportCtx.fillStyle = '#2d2d2d';
+                    exportCtx.textAlign = 'left';
+                    let label = item.label;
+                    if (label.length > 20) label = label.substring(0, 18) + '...';
+                    exportCtx.fillText(label, legendX + 28 * pixelRatio * scale, currentY);
+                    
+                    // Count & pct
+                    const pct = totalVisible > 0 ? ((item.count / totalVisible) * 100).toFixed(1) : '0.0';
+                    exportCtx.font = `normal ${Math.round(10 * pixelRatio * scale)}px Inter, "Segoe UI", sans-serif`;
+                    exportCtx.fillStyle = '#888888';
+                    exportCtx.textAlign = 'right';
+                    exportCtx.fillText(`${item.count} (${pct}%)`, legendX + legendWidth - 14 * pixelRatio * scale, currentY);
+                    
+                    currentY += 20 * pixelRatio * scale;
+                });
+                
+                exportCtx.textAlign = 'left';
+                exportCtx.restore();
+            }
+            
+            const link = document.createElement('a');
+            link.download = `grafo-${graphType}-${new Date().toISOString().slice(0, 10)}.png`;
+            link.href = exportCanvas.toDataURL("image/png");
+            link.click();
+        } catch (error) {
+            console.error("Erro ao baixar imagem recortada:", error);
+        }
+    }, [cropPercent, addLegend, legendScale, legendData, totalVisible, graphType]);
 
     const handleCloseCard = useCallback(() => {
         setSelectedDeputy(null);
@@ -445,8 +710,31 @@ export default function Grafo() {
         backgroundPosition: `right ${SPACING.md} center`,
     };
 
-    const pinnedIds = pinnedDeputies.map(p => p.id);
+    const handleBaseStyle = {
+        width: '10px',
+        height: '10px',
+        backgroundColor: '#ffffff',
+        border: `2px solid ${COLORS.orange}`,
+        borderRadius: '50%',
+        position: 'absolute',
+        zIndex: 5,
+        boxSizing: 'border-box',
+    };
+    
+    const edgeBaseStyle = {
+        position: 'absolute',
+        zIndex: 4,
+        boxSizing: 'border-box',
+    };
+
+    const pinnedIds = useMemo(() => pinnedDeputies.map(p => p.id), [pinnedDeputies]);
     const isSelectedPinned = selectedDeputy ? pinnedIds.includes(selectedDeputy.id) : false;
+
+    // Proporção de exibição da imagem de preview para manter a legenda HTML proporcional ao PNG final
+    const pixelRatio = window.devicePixelRatio || 1;
+    const canvasWidthCss = baseCanvasRef.current ? baseCanvasRef.current.width / pixelRatio : 1;
+    const displayRatio = imgSize.width > 0 ? imgSize.width / canvasWidthCss : 1;
+    const finalHtmlScale = parseFloat(legendScale) * displayRatio;
 
     return (
         <div style={pageStyle}>
@@ -466,7 +754,389 @@ export default function Grafo() {
                 hoveredBarGroup={hoveredBarGroup}
                 hoveredConnectionNode={hoveredConnectionNode}
                 recalcKey={recalcKey}
+                onSigmaReady={setSigmaInstance}
             />
+
+            {/* Highlight overlay da área de captura */}
+            {showHighlightOverlay && (
+                <div style={{
+                    position: 'fixed',
+                    top: '68px', // just below the top bar (top: 16, height: 52)
+                    left: '16px', // aligned with the top bar's left
+                    width: 'calc(100vw - 266px - 16px)', // width from left margin to right panels margin
+                    height: 'calc(100vh - 68px - 16px)', // height to bottom margin
+                    backgroundColor: 'rgba(232, 133, 12, 0.06)', // subtle brand-orange tint
+                    border: `2px dashed ${COLORS.orange}`,
+                    borderRadius: SPACING.radiusLg,
+                    pointerEvents: 'none', // user can click through it
+                    zIndex: 9999, // on top of everything
+                    boxSizing: 'border-box',
+                    transition: 'all 0.15s ease-in-out',
+                }} />
+            )}
+
+            {/* Modal de preview da imagem exportada */}
+            {previewImage && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100vw',
+                    height: '100vh',
+                    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                    backdropFilter: 'blur(5px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 2000,
+                }}>
+                    <style>{`
+                        @keyframes fadeIn {
+                            from { opacity: 0; }
+                            to { opacity: 1; }
+                        }
+                        @keyframes scaleUp {
+                            from { transform: scale(0.95); opacity: 0; }
+                            to { transform: scale(1); opacity: 1; }
+                        }
+                    `}</style>
+                    <div style={{
+                        backgroundColor: COLORS.white,
+                        borderRadius: SPACING.radiusLg,
+                        width: '85vw',
+                        maxWidth: '900px',
+                        maxHeight: '90vh',
+                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden',
+                        animation: 'scaleUp 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                    }}>
+                        {/* Header */}
+                        <div style={{
+                            padding: `${SPACING.md} ${SPACING.lg}`,
+                            borderBottom: `1px solid ${COLORS.borderLight}`,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                        }}>
+                            <span style={{ fontSize: FONTS.sizeLg, fontWeight: FONTS.weightSemibold, color: COLORS.textDark }}>
+                                Exportar Imagem do Grafo
+                            </span>
+                            <button
+                                onClick={() => setPreviewImage(null)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    color: COLORS.textMedium,
+                                    fontSize: '20px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: '4px',
+                                    borderRadius: '50%',
+                                    transition: 'background-color 0.15s',
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.05)'}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Image Preview Container with Cropper */}
+                        <div style={{
+                            padding: SPACING.lg,
+                            overflow: 'hidden',
+                            backgroundColor: '#f9f9f9',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            flex: 1,
+                            minHeight: '200px',
+                            maxHeight: '65vh',
+                            userSelect: 'none',
+                        }}>
+                            <div style={{
+                                position: 'relative',
+                                display: 'inline-block',
+                                maxWidth: '100%',
+                                maxHeight: '100%',
+                            }}>
+                                <img
+                                    ref={imgRef}
+                                    src={previewImage}
+                                    alt="Grafo Exportado Preview"
+                                    onLoad={handleImageLoad}
+                                    style={{
+                                        maxWidth: '100%',
+                                        maxHeight: '60vh',
+                                        display: 'block',
+                                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                        borderRadius: SPACING.radiusSm,
+                                        border: '1px solid #e0e0e0',
+                                        userSelect: 'none',
+                                        pointerEvents: 'none',
+                                    }}
+                                />
+                                
+                                {imgSize.width > 0 && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        width: '100%',
+                                        height: '100%',
+                                        overflow: 'hidden',
+                                        borderRadius: SPACING.radiusSm,
+                                    }}>
+                                        {/* Overlays */}
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            right: 0,
+                                            height: `${cropPercent.y}%`,
+                                            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                                        }} />
+                                        <div style={{
+                                            position: 'absolute',
+                                            bottom: 0,
+                                            left: 0,
+                                            right: 0,
+                                            height: `${100 - cropPercent.y - cropPercent.h}%`,
+                                            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                                        }} />
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: `${cropPercent.y}%`,
+                                            bottom: `${100 - cropPercent.y - cropPercent.h}%`,
+                                            left: 0,
+                                            width: `${cropPercent.x}%`,
+                                            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                                        }} />
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: `${cropPercent.y}%`,
+                                            bottom: `${100 - cropPercent.y - cropPercent.h}%`,
+                                            right: 0,
+                                            width: `${100 - cropPercent.x - cropPercent.w}%`,
+                                            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                                        }} />
+                                        
+                                        {/* Crop Box */}
+                                        <div 
+                                            style={{
+                                                position: 'absolute',
+                                                top: `${cropPercent.y}%`,
+                                                left: `${cropPercent.x}%`,
+                                                width: `${cropPercent.w}%`,
+                                                height: `${cropPercent.h}%`,
+                                                border: `2px dashed ${COLORS.orange}`,
+                                                boxSizing: 'border-box',
+                                                cursor: 'move',
+                                            }}
+                                            onMouseDown={(e) => handleMouseDown(e, 'move')}
+                                        >
+                                            {/* Dimension Badge */}
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: cropPercent.y < 8 ? '5px' : '-25px',
+                                                left: '50%',
+                                                transform: 'translateX(-50%)',
+                                                backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                                                color: '#ffffff',
+                                                borderRadius: '4px',
+                                                padding: '2px 8px',
+                                                fontSize: '11px',
+                                                fontFamily: 'Inter, "Segoe UI", sans-serif',
+                                                fontWeight: 600,
+                                                whiteSpace: 'nowrap',
+                                                pointerEvents: 'none',
+                                                zIndex: 12,
+                                                boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                                            }}>
+                                                {Math.round((cropPercent.w / 100) * (baseCanvasRef.current ? baseCanvasRef.current.width : 0))} x {Math.round((cropPercent.h / 100) * (baseCanvasRef.current ? baseCanvasRef.current.height : 0))} px
+                                            </div>
+
+                                            {/* Handles */}
+                                            {/* corners */}
+                                            <div style={{ ...handleBaseStyle, top: '-5px', left: '-5px', cursor: 'nwse-resize' }} onMouseDown={(e) => handleMouseDown(e, 'nw')} />
+                                            <div style={{ ...handleBaseStyle, top: '-5px', right: '-5px', cursor: 'nesw-resize' }} onMouseDown={(e) => handleMouseDown(e, 'ne')} />
+                                            <div style={{ ...handleBaseStyle, bottom: '-5px', left: '-5px', cursor: 'nesw-resize' }} onMouseDown={(e) => handleMouseDown(e, 'sw')} />
+                                            <div style={{ ...handleBaseStyle, bottom: '-5px', right: '-5px', cursor: 'nwse-resize' }} onMouseDown={(e) => handleMouseDown(e, 'se')} />
+                                            
+                                            {/* edges */}
+                                            <div style={{ ...edgeBaseStyle, top: '-4px', left: '5px', right: '5px', height: '8px', cursor: 'ns-resize' }} onMouseDown={(e) => handleMouseDown(e, 'n')} />
+                                            <div style={{ ...edgeBaseStyle, bottom: '-4px', left: '5px', right: '5px', height: '8px', cursor: 'ns-resize' }} onMouseDown={(e) => handleMouseDown(e, 's')} />
+                                            <div style={{ ...edgeBaseStyle, left: '-4px', top: '5px', bottom: '5px', width: '8px', cursor: 'ew-resize' }} onMouseDown={(e) => handleMouseDown(e, 'w')} />
+                                            <div style={{ ...edgeBaseStyle, right: '-4px', top: '5px', bottom: '5px', width: '8px', cursor: 'ew-resize' }} onMouseDown={(e) => handleMouseDown(e, 'e')} />
+                                            
+                                            {/* Floating Legend */}
+                                            {addLegend && legendData.length > 0 && (
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    bottom: '16px',
+                                                    right: '16px',
+                                                    width: '220px',
+                                                    backgroundColor: '#ffffff',
+                                                    border: '1px solid #e0e0e0',
+                                                    borderRadius: '8px',
+                                                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                                                    transform: `scale(${finalHtmlScale})`,
+                                                    transformOrigin: 'bottom right',
+                                                    pointerEvents: 'none',
+                                                    zIndex: 10,
+                                                    boxSizing: 'border-box',
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    padding: '12px 14px 8px 14px',
+                                                }}>
+                                                    {[...legendData]
+                                                        .sort((a, b) => b.count - a.count)
+                                                        .slice(0, 10)
+                                                        .map((item) => {
+                                                            const pct = totalVisible > 0 ? ((item.count / totalVisible) * 100).toFixed(1) : '0.0';
+                                                            let label = item.label;
+                                                            if (label.length > 20) label = label.substring(0, 18) + '...';
+                                                            
+                                                            return (
+                                                                <div key={item.key} style={{
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    height: '20px',
+                                                                    fontSize: '11px',
+                                                                    fontFamily: 'Inter, "Segoe UI", sans-serif',
+                                                                    fontWeight: 500,
+                                                                    color: '#2d2d2d',
+                                                                    gap: '8px',
+                                                                    boxSizing: 'border-box',
+                                                                }}>
+                                                                    <span style={{
+                                                                        width: '8px',
+                                                                        height: '8px',
+                                                                        borderRadius: '50%',
+                                                                        backgroundColor: item.color,
+                                                                        flexShrink: 0,
+                                                                    }} />
+                                                                    <span style={{
+                                                                        flex: 1,
+                                                                        overflow: 'hidden',
+                                                                        textOverflow: 'ellipsis',
+                                                                        whiteSpace: 'nowrap',
+                                                                    }}>{label}</span>
+                                                                    <span style={{
+                                                                        fontSize: '10px',
+                                                                        color: '#888888',
+                                                                        flexShrink: 0,
+                                                                        textAlign: 'right',
+                                                                    }}>{item.count} ({pct}%)</span>
+                                                                </div>
+                                                            );
+                                                        })
+                                                    }
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div style={{
+                            padding: `${SPACING.md} ${SPACING.lg}`,
+                            borderTop: `1px solid ${COLORS.borderLight}`,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            backgroundColor: '#fafafa',
+                            gap: SPACING.md,
+                            flexWrap: 'wrap',
+                        }}>
+                            {/* Opções de Legenda à esquerda */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: SPACING.md }}>
+                                <Checkbox
+                                    label="Adicionar a legenda"
+                                    checked={addLegend}
+                                    onChange={setAddLegend}
+                                />
+                                
+                                {addLegend && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: SPACING.xs }}>
+                                        <span style={{ fontSize: FONTS.sizeSm, color: COLORS.textMedium }}>Tamanho:</span>
+                                        <select
+                                            value={legendScale}
+                                            onChange={(e) => setLegendScale(e.target.value)}
+                                            style={{
+                                                padding: '4px 8px',
+                                                borderRadius: SPACING.radiusSm,
+                                                border: `1px solid ${COLORS.borderMedium}`,
+                                                backgroundColor: COLORS.white,
+                                                fontSize: FONTS.sizeSm,
+                                                color: COLORS.textDark,
+                                                cursor: 'pointer',
+                                                outline: 'none',
+                                            }}
+                                        >
+                                            <option value="0.5">0.5x</option>
+                                            <option value="1.0">1x</option>
+                                            <option value="1.5">1.5x</option>
+                                            <option value="2.0">2x</option>
+                                            <option value="3.0">3x</option>
+                                            <option value="4.0">4x</option>
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Botões de Ação à direita */}
+                            <div style={{ display: 'flex', gap: SPACING.md }}>
+                                <button
+                                    onClick={() => setPreviewImage(null)}
+                                    style={{
+                                        padding: `${SPACING.sm} ${SPACING.lg}`,
+                                        backgroundColor: 'transparent',
+                                        color: COLORS.textMedium,
+                                        border: `1px solid ${COLORS.borderMedium}`,
+                                        borderRadius: SPACING.radiusMd,
+                                        cursor: 'pointer',
+                                        fontWeight: FONTS.weightMedium,
+                                        transition: 'background-color 0.15s, border-color 0.15s',
+                                    }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f0f0f0'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleDownloadImage}
+                                    style={{
+                                        padding: `${SPACING.sm} ${SPACING.xl}`,
+                                        backgroundColor: COLORS.orange,
+                                        color: COLORS.white,
+                                        border: 'none',
+                                        borderRadius: SPACING.radiusMd,
+                                        cursor: 'pointer',
+                                        fontWeight: FONTS.weightSemibold,
+                                        transition: 'background-color 0.15s, transform 0.1s',
+                                        boxShadow: SHADOWS.button,
+                                    }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = COLORS.orangeHover; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = COLORS.orange; }}
+                                >
+                                    Exportar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
 
             {/* Barra superior */}
             <TopBar
@@ -598,6 +1268,15 @@ export default function Grafo() {
                         isMinimized={openPanel !== 'fixados'}
                         onToggleMinimize={() => handleTogglePanel('fixados')}
                     />
+
+                    {/* Painel de exportar */}
+                    <ExportPanel
+                                        sigmaInstance={sigmaInstance}
+                                        isMinimized={openPanel !== 'exportar'}
+                                        onToggleMinimize={() => handleTogglePanel('exportar')}
+                                        onGeneratePreview={handleShowPreview}
+                                        setShowHighlightOverlay={setShowHighlightOverlay}
+                                    />
                 </div>
             )}
 

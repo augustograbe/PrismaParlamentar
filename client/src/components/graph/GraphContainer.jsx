@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
-import { SigmaContainer } from '@react-sigma/core';
+import { useEffect, useState, useMemo, useRef, useCallback, memo } from 'react';
+import { SigmaContainer, useSigma } from '@react-sigma/core';
 import Graph from 'graphology';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import { random } from 'graphology-layout';
@@ -9,6 +9,19 @@ import '@react-sigma/core/lib/style.css';
 import { PARTY_COLORS, STATE_COLORS, SEX_COLORS, COLORS, SPACING, FONTS } from '../../constants/theme';
 import GraphEventsController from './GraphEventsController';
 import GraphSettingsController from './GraphSettingsController';
+
+const SigmaInstanceListener = ({ onSigmaReady }) => {
+    const sigma = useSigma();
+    useEffect(() => {
+        if (onSigmaReady) {
+            onSigmaReady(sigma);
+        }
+        return () => {
+            if (onSigmaReady) onSigmaReady(null);
+        };
+    }, [sigma, onSigmaReady]);
+    return null;
+};
 
 /**
  * Retorna o ID da comunidade do deputado baseado no algoritmo e tipo de grafo.
@@ -124,7 +137,7 @@ function getNodeColor(deputy, separateBy, graphType, dynamicCommunityMap = null,
  * - selectedNode: id do nó selecionado (string | null)
  * - onNodeClick: callback quando um nó é clicado
  */
-export default function GraphContainer({ filters, graphType = 'similaridade', selectedNode, selectedDeputy, onNodeClick, onDeputiesLoaded, onMaxCoautoriaLoaded, onVisibleStatsChanged, pinnedIds = [], highlightPinned = true, hoveredLegendGroup = null, hoveredBarGroup = null, hoveredConnectionNode = null, recalcKey = 0, onLayoutReady }) {
+const GraphContainer = memo(function GraphContainer({ filters, graphType = 'similaridade', selectedNode, selectedDeputy, onNodeClick, onDeputiesLoaded, onMaxCoautoriaLoaded, onVisibleStatsChanged, pinnedIds = [], highlightPinned = true, hoveredLegendGroup = null, hoveredBarGroup = null, hoveredConnectionNode = null, recalcKey = 0, onLayoutReady, onSigmaReady }) {
     const graph = useMemo(() => new Graph(), []);
     const sigmaRef = useRef(null);
     const [dataLoaded, setDataLoaded] = useState(false);
@@ -1105,6 +1118,7 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
                     settings={sigmaSettings}
                     style={{ width: '100%', height: '100%', visibility: isComputing ? 'hidden' : 'visible' }}
                 >
+                    <SigmaInstanceListener onSigmaReady={onSigmaReady} />
                     <GraphEventsController setSelectedNode={handleNodeClick} />
                     <GraphSettingsController selectedNode={selectedNode} pinnedIds={pinnedIds} highlightPinned={highlightPinned} hoveredLegendGroup={hoveredLegendGroup} hoveredBarGroup={hoveredBarGroup} hoveredConnectionNode={hoveredConnectionNode} separateBy={filters.separateBy} graphType={graphType} dynamicCommunityMap={activeDynamicCommunityMap} />
                 </SigmaContainer>
@@ -1124,4 +1138,6 @@ export default function GraphContainer({ filters, graphType = 'similaridade', se
             )}
         </div>
     );
-}
+});
+
+export default GraphContainer;

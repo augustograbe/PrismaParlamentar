@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@react-sigma/core": "^5.0.6",
+    "@sigma/export-image": "^3.0.0",
     "@sigma/node-border": "^3.0.0",
     "@tailwindcss/vite": "^4.2.1",
     "graphology": "^0.26.0",

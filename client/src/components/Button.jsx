@@ -17,6 +17,8 @@ export default function Button({
     onClick,
     style = {},
     disabled = false,
+    onMouseEnter,
+    onMouseLeave,
 }) {
     const baseStyle = {
         display: 'inline-flex',
@@ -69,6 +71,7 @@ export default function Button({
                         e.currentTarget.style.color = COLORS.textWhite;
                     }
                 }
+                if (onMouseEnter) onMouseEnter(e);
             }}
             onMouseLeave={(e) => {
                 if (!disabled) {
@@ -76,6 +79,7 @@ export default function Button({
                     e.currentTarget.style.color = variants[variant].color;
                     e.currentTarget.style.borderColor = variants[variant].border ? COLORS.orange : 'transparent';
                 }
+                if (onMouseLeave) onMouseLeave(e);
             }}
         >
             {icon && <span style={{ display: 'flex', alignItems: 'center' }}>{icon}</span>}

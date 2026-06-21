@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { COLORS, SPACING, FONTS } from '../../constants/theme';
 import SearchBar from '../SearchBar';
 import logo from '../../assets/logo.png';
+import { useIsMobile } from '../../utils/useIsMobile';
 
 /**
  * TopBar - Barra superior da aplicação
@@ -13,50 +15,59 @@ import logo from '../../assets/logo.png';
  */
 export default function TopBar({ deputyList = [], onSelectDeputy, onSelectProfile, activePage = 'grafos' }) {
     const navigate = useNavigate();
+    const isMobile = useIsMobile();
+    const [searchActive, setSearchActive] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
+
     const barStyle = {
         position: 'fixed',
-        top: SPACING.frameGap,
-        left: SPACING.frameGap,
-        right: SPACING.frameGap,
+        top: isMobile ? 0 : SPACING.frameGap,
+        left: isMobile ? 0 : SPACING.frameGap,
+        right: isMobile ? 0 : SPACING.frameGap,
         height: '52px',
         backgroundColor: COLORS.frameBg,
-        borderRadius: SPACING.radiusLg,
+        borderRadius: isMobile ? 0 : SPACING.radiusLg,
         boxShadow: '0 2px 12px rgba(0, 0, 0, 0.15)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: `0 ${SPACING.xl}`,
+        padding: `0 ${isMobile ? SPACING.md : SPACING.xl}`,
         zIndex: 100,
     };
 
     const leftStyle = {
         display: 'flex',
         alignItems: 'center',
-        gap: SPACING.md,
+        gap: isMobile ? SPACING.xs : SPACING.md,
+        flexShrink: 0,
     };
 
     const logoStyle = {
-        width: '56px',
-        height: '44px',
+        width: isMobile ? '40px' : '56px',
+        height: isMobile ? '32px' : '44px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
     };
 
     const titleStyle = {
-        fontSize: FONTS.sizeTitle,
+        fontSize: isMobile ? '16px' : FONTS.sizeTitle,
         fontWeight: FONTS.weightMedium,
         color: COLORS.textDark,
+        display: isMobile ? (searchActive ? 'none' : 'inline') : 'inline',
     };
 
     const centerStyle = {
         flex: 1,
-        maxWidth: '450px',
-        margin: `0 ${SPACING.xl}`,
+        maxWidth: isMobile ? 'none' : '450px',
+        margin: `0 ${isMobile ? SPACING.xs : SPACING.xl}`,
+        display: 'flex',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
     };
 
     const rightStyle = {
-        display: 'flex',
+        display: isMobile ? 'none' : 'flex',
         alignItems: 'center',
         gap: SPACING.lg,
     };
@@ -75,6 +86,21 @@ export default function TopBar({ deputyList = [], onSelectDeputy, onSelectProfil
         padding: `${SPACING.sm} ${SPACING.md}`,
         borderRadius: SPACING.radiusMd,
         transition: 'color 0.15s, background-color 0.15s',
+    };
+
+    const mobileMenuDropdownStyle = {
+        position: 'absolute',
+        top: '52px',
+        left: 0,
+        right: 0,
+        backgroundColor: COLORS.frameBg,
+        boxShadow: '0 8px 16px rgba(0, 0, 0, 0.15)',
+        borderBottom: `1px solid ${COLORS.borderLight}`,
+        display: 'flex',
+        flexDirection: 'column',
+        padding: SPACING.md,
+        gap: SPACING.xs,
+        zIndex: 99,
     };
 
     const menuItems = [
@@ -120,7 +146,7 @@ export default function TopBar({ deputyList = [], onSelectDeputy, onSelectProfil
             {/* Left: Logo + Title */}
             <div style={leftStyle}>
                 <div style={logoStyle}>
-                    <img src={logo} alt="Prisma Político logo" style={{ width: '56px', height: '44px', objectFit: 'contain' }} />
+                    <img src={logo} alt="Prisma Político logo" style={{ width: isMobile ? '40px' : '56px', height: isMobile ? '32px' : '44px', objectFit: 'contain' }} />
                 </div>
                 <span style={titleStyle}>Prisma Político</span>
             </div>
@@ -130,8 +156,17 @@ export default function TopBar({ deputyList = [], onSelectDeputy, onSelectProfil
                 <SearchBar
                     placeholder="Pesquisar deputado"
                     suggestions={deputyList}
-                    onSelectSuggestion={onSelectDeputy}
-                    onSelectProfile={onSelectProfile}
+                    onSelectSuggestion={(dep) => {
+                        setSearchActive(false);
+                        onSelectDeputy(dep);
+                    }}
+                    onSelectProfile={(dep) => {
+                        setSearchActive(false);
+                        onSelectProfile(dep);
+                    }}
+                    isMobile={isMobile}
+                    searchActive={searchActive}
+                    onToggleSearch={() => setSearchActive(!searchActive)}
                 />
             </div>
 
@@ -160,6 +195,70 @@ export default function TopBar({ deputyList = [], onSelectDeputy, onSelectProfil
                     );
                 })}
             </div>
+
+            {/* Mobile-only Hamburger trigger */}
+            {isMobile && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: SPACING.md, flexShrink: 0 }}>
+                    {/* Hamburger button */}
+                    <button
+                        onClick={() => setMenuOpen(!menuOpen)}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: menuOpen ? COLORS.orange : COLORS.textMedium,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: SPACING.xs,
+                        }}
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            {menuOpen ? (
+                                <>
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </>
+                            ) : (
+                                <>
+                                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                                </>
+                            )}
+                        </svg>
+                    </button>
+                </div>
+            )}
+
+            {/* Mobile Expanded Menu Dropdown */}
+            {isMobile && menuOpen && (
+                <div style={mobileMenuDropdownStyle}>
+                    {menuItems.map((item) => {
+                        const isActive = activePage === item.page;
+                        return (
+                            <button
+                                key={item.label}
+                                style={{
+                                    ...menuBtnStyle,
+                                    width: '100%',
+                                    justifyContent: 'flex-start',
+                                    padding: `${SPACING.md} ${SPACING.lg}`,
+                                    color: isActive ? COLORS.orange : COLORS.textDark,
+                                    backgroundColor: isActive ? 'rgba(232, 133, 12, 0.08)' : 'transparent',
+                                }}
+                                onClick={() => {
+                                    setMenuOpen(false);
+                                    navigate(item.route);
+                                }}
+                            >
+                                {item.icon(isActive)}
+                                <span style={{ marginLeft: SPACING.sm }}>{item.label}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }

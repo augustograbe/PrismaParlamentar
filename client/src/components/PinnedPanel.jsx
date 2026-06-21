@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import Frame from './Frame';
 import Tooltip from './Tooltip';
 import { COLORS, SPACING, FONTS } from '../constants/theme';
@@ -11,7 +10,18 @@ import { Pin } from 'lucide-react';
  * - onRemove: callback (id) ao remover um deputado da lista
  * - onSelect: callback (dep) ao clicar no nome de um deputado
  */
-export default function PinnedPanel({ pinnedDeputies = [], onRemove, onSelect, isMinimized, onToggleMinimize, deputyRankings }) {
+export default function PinnedPanel({ 
+    pinnedDeputies = [], 
+    onRemove, 
+    onSelect, 
+    isMinimized, 
+    onToggleMinimize, 
+    deputyRankings, 
+    width = '250px', 
+    height = 'auto',
+    style = {},
+    hideHeader = false 
+}) {
 
 
     const pinIcon = (
@@ -67,10 +77,10 @@ export default function PinnedPanel({ pinnedDeputies = [], onRemove, onSelect, i
 
     return (
         <Frame
-            width="250px"
-            height="auto"
+            width={width}
+            height={height}
             position={{ position: 'relative' }}
-            style={{ flex: isMinimized ? '0 0 auto' : '0 1 auto', minHeight: 0 }}
+            style={{ flex: isMinimized ? '0 0 auto' : '0 1 auto', minHeight: 0, ...style }}
             title={
                 <span style={{ display: 'flex', alignItems: 'center', gap: SPACING.sm }}>
                     {pinIcon} Fixados ({pinnedDeputies.length})
@@ -80,6 +90,7 @@ export default function PinnedPanel({ pinnedDeputies = [], onRemove, onSelect, i
             showMinimize={true}
             isMinimized={isMinimized}
             onToggleMinimize={onToggleMinimize}
+            hideHeader={hideHeader}
         >
             {pinnedDeputies.length === 0 ? (
                 <div style={emptyStyle}>

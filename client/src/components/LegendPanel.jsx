@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import Frame from './Frame';
 import Tooltip from './Tooltip';
 import { COLORS, SPACING, FONTS } from '../constants/theme';
@@ -10,7 +9,17 @@ import { COLORS, SPACING, FONTS } from '../constants/theme';
  * - totalVisible: total de vértices visíveis
  * - onHoverGroup: callback (groupKey | null) ao hover/leave
  */
-export default function LegendPanel({ legendData = [], totalVisible = 0, onHoverGroup, isMinimized, onToggleMinimize }) {
+export default function LegendPanel({ 
+    legendData = [], 
+    totalVisible = 0, 
+    onHoverGroup, 
+    isMinimized, 
+    onToggleMinimize, 
+    width = '250px', 
+    height = 'auto',
+    style = {},
+    hideHeader = false 
+}) {
     const legendIcon = (
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={COLORS.orange} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -25,7 +34,7 @@ export default function LegendPanel({ legendData = [], totalVisible = 0, onHover
         display: 'flex',
         flexDirection: 'column',
         gap: '1px',
-        overflowY: 'auto',
+        overflowY: 'visible',
     };
 
     const itemStyle = {
@@ -67,10 +76,10 @@ export default function LegendPanel({ legendData = [], totalVisible = 0, onHover
 
     return (
         <Frame
-            width="250px"
-            height="auto"
+            width={width}
+            height={height}
             position={{ position: 'relative' }}
-            style={{ flex: isMinimized ? '0 0 auto' : '0 1 auto', minHeight: 0 }}
+            style={{ flex: isMinimized ? '0 0 auto' : '0 1 auto', minHeight: 0, ...style }}
             title={
                 <span style={{ display: 'flex', alignItems: 'center', gap: SPACING.sm }}>
                     {legendIcon} Legenda ({totalVisible})
@@ -80,6 +89,7 @@ export default function LegendPanel({ legendData = [], totalVisible = 0, onHover
             showMinimize={true}
             isMinimized={isMinimized}
             onToggleMinimize={onToggleMinimize}
+            hideHeader={hideHeader}
         >
             {sorted.length === 0 ? (
                 <div style={{ padding: `${SPACING.md} ${SPACING.lg}`, fontSize: FONTS.sizeSm, color: COLORS.textLight, textAlign: 'center', fontStyle: 'italic' }}>

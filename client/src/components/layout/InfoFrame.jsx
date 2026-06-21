@@ -6,7 +6,7 @@ import { COLORS, SPACING, FONTS, SHADOWS } from '../../constants/theme';
  * InfoFrame - Frame "O que estou vendo?" no canto inferior esquerdo
  * Expande ao passar o mouse para fornecer explicações personalizadas em tempo real.
  */
-export default function InfoFrame({ graphType = 'similaridade', filters }) {
+export default function InfoFrame({ graphType = 'similaridade', filters, isMobileInline = false }) {
     const [isExpanded, setIsExpanded] = useState(false);
     const timeoutRef = useRef(null);
 
@@ -345,6 +345,36 @@ export default function InfoFrame({ graphType = 'similaridade', filters }) {
         bottom: SPACING.frameGap,
         left: SPACING.frameGap,
     };
+
+    if (isMobileInline) {
+        return (
+            <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: SPACING.sm,
+                backgroundColor: COLORS.white,
+                padding: SPACING.md,
+                borderRadius: SPACING.radiusMd,
+                border: `1px solid ${COLORS.borderLight}`,
+            }}>
+                <div style={{
+                    fontSize: FONTS.sizeSm,
+                    fontWeight: FONTS.weightBold,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.6px',
+                    color: COLORS.orange,
+                    borderBottom: `1px dashed ${COLORS.borderLight}`,
+                    paddingBottom: '6px',
+                    marginBottom: '2px',
+                }}>
+                    {getGraphTitle()}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: SPACING.md }}>
+                    {getNarrativeParagraphs()}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <Frame

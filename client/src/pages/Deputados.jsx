@@ -7,7 +7,8 @@ import FieldsPanel, { ALL_FIELD_OPTIONS } from '../components/FieldsPanel';
 import PinnedPanel from '../components/PinnedPanel';
 import DeputyProfile from '../components/DeputyProfile';
 import { COLORS, SPACING, FONTS, SHADOWS, PARTY_COLORS } from '../constants/theme';
-import { Pin, PinOff } from 'lucide-react';
+import { Pin, PinOff, ArrowUpDown, Filter, Columns } from 'lucide-react';
+import { useIsMobile } from '../utils/useIsMobile';
 
 const PINNED_STORAGE_KEY = 'prisma_politico_pinned';
 const PAGE_SIZE = 100;
@@ -117,8 +118,18 @@ export default function Deputados() {
     const [loading, setLoading] = useState(true);
     const [pinnedDeputies, setPinnedDeputies] = useState(() => loadPinnedFromStorage());
     const [profileDeputy, setProfileDeputy] = useState(null);
+    const isMobile = useIsMobile();
     const [currentPage, setCurrentPage] = useState(() => initialParams.currentPage);
-    const [openPanel, setOpenPanel] = useState('filtros');
+    const [openPanel, setOpenPanel] = useState(null);
+    
+    // Adjust panel state dynamically for mobile/desktop viewports
+    useEffect(() => {
+        if (!isMobile) {
+            setOpenPanel('filtros');
+        } else {
+            setOpenPanel(null);
+        }
+    }, [isMobile]);
     const [highlightedDeputyId, setHighlightedDeputyId] = useState(null);
     const [hoveredRowId, setHoveredRowId] = useState(null);
     const [speechTotals, setSpeechTotals] = useState({});
@@ -516,10 +527,10 @@ export default function Deputados() {
     // Table container — fills the space below TopBar, to the left of panels
     const tableContainerStyle = {
         position: 'absolute',
-        top: topOffset,
-        left: SPACING.frameGap,
-        right: `calc(${panelWidth} + ${SPACING.frameGap} + ${SPACING.frameGap})`,
-        bottom: SPACING.frameGap,
+        top: isMobile ? '60px' : topOffset,
+        left: isMobile ? '8px' : SPACING.frameGap,
+        right: isMobile ? '8px' : `calc(${panelWidth} + ${SPACING.frameGap} + ${SPACING.frameGap})`,
+        bottom: isMobile ? '12px' : SPACING.frameGap,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -646,9 +657,11 @@ export default function Deputados() {
     const paginationStyle = {
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: isMobile ? 'center' : 'space-between',
         padding: `${SPACING.md} 0`,
         flexShrink: 0,
+        flexWrap: isMobile ? 'wrap' : 'nowrap',
+        gap: isMobile ? SPACING.sm : 0,
     };
 
     const paginationInfoStyle = {
@@ -656,17 +669,20 @@ export default function Deputados() {
         color: COLORS.textMedium,
         fontFamily: FONTS.family,
         whiteSpace: 'nowrap',
+        textAlign: isMobile ? 'center' : 'left',
+        width: isMobile ? '100%' : 'auto',
     };
 
     const paginationButtonsStyle = {
         display: 'flex',
         alignItems: 'center',
-        gap: SPACING.sm,
+        gap: isMobile ? '4px' : SPACING.sm,
+        justifyContent: 'center',
     };
 
     const pageButtonStyle = (isActive) => ({
-        minWidth: '32px',
-        height: '32px',
+        minWidth: isMobile ? '28px' : '32px',
+        height: isMobile ? '28px' : '32px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -674,7 +690,7 @@ export default function Deputados() {
         borderRadius: SPACING.radiusMd,
         backgroundColor: isActive ? COLORS.orange : COLORS.white,
         color: isActive ? COLORS.textWhite : COLORS.textDark,
-        fontSize: FONTS.sizeSm,
+        fontSize: isMobile ? '11px' : FONTS.sizeSm,
         fontFamily: FONTS.family,
         fontWeight: isActive ? FONTS.weightSemibold : FONTS.weightNormal,
         cursor: 'pointer',
@@ -743,6 +759,124 @@ export default function Deputados() {
                     </div>
                 ) : (
                     <>
+                        {isMobile && (
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                marginBottom: SPACING.sm,
+                                flexShrink: 0,
+                                width: '100%',
+                            }}>
+                                <span style={{
+                                    fontSize: '12px',
+                                    color: COLORS.textMedium,
+                                    fontFamily: FONTS.family,
+                                }}>
+                                    {sortedDeputies.length} deputados
+                                </span>
+                                <div style={{ display: 'flex', gap: SPACING.sm }}>
+                                    <button
+                                        onClick={() => handleTogglePanel('ordenar')}
+                                        style={{
+                                            width: '36px',
+                                            height: '36px',
+                                            borderRadius: '50%',
+                                            backgroundColor: openPanel === 'ordenar' ? COLORS.orange : COLORS.white,
+                                            color: openPanel === 'ordenar' ? COLORS.textWhite : COLORS.textDark,
+                                            border: `1px solid ${openPanel === 'ordenar' ? COLORS.orange : COLORS.borderMedium}`,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            cursor: 'pointer',
+                                            boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+                                        }}
+                                        title="Ordenar"
+                                    >
+                                        <ArrowUpDown size={16} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleTogglePanel('filtros')}
+                                        style={{
+                                            width: '36px',
+                                            height: '36px',
+                                            borderRadius: '50%',
+                                            backgroundColor: openPanel === 'filtros' ? COLORS.orange : COLORS.white,
+                                            color: openPanel === 'filtros' ? COLORS.textWhite : COLORS.textDark,
+                                            border: `1px solid ${openPanel === 'filtros' ? COLORS.orange : COLORS.borderMedium}`,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            cursor: 'pointer',
+                                            boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+                                        }}
+                                        title="Filtros"
+                                    >
+                                        <Filter size={16} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleTogglePanel('campos')}
+                                        style={{
+                                            width: '36px',
+                                            height: '36px',
+                                            borderRadius: '50%',
+                                            backgroundColor: openPanel === 'campos' ? COLORS.orange : COLORS.white,
+                                            color: openPanel === 'campos' ? COLORS.textWhite : COLORS.textDark,
+                                            border: `1px solid ${openPanel === 'campos' ? COLORS.orange : COLORS.borderMedium}`,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            cursor: 'pointer',
+                                            boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+                                        }}
+                                        title="Campos"
+                                    >
+                                        <Columns size={16} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleTogglePanel('fixados')}
+                                        style={{
+                                            width: '36px',
+                                            height: '36px',
+                                            borderRadius: '50%',
+                                            backgroundColor: openPanel === 'fixados' ? COLORS.orange : COLORS.white,
+                                            color: openPanel === 'fixados' ? COLORS.textWhite : COLORS.textDark,
+                                            border: `1px solid ${openPanel === 'fixados' ? COLORS.orange : COLORS.borderMedium}`,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            cursor: 'pointer',
+                                            boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+                                            position: 'relative',
+                                        }}
+                                        title="Fixados"
+                                    >
+                                        <Pin size={16} />
+                                        {pinnedDeputies.length > 0 && (
+                                            <span style={{
+                                                position: 'absolute',
+                                                bottom: '-4px',
+                                                right: '-4px',
+                                                backgroundColor: COLORS.orange,
+                                                color: COLORS.textWhite,
+                                                borderRadius: '50%',
+                                                minWidth: '14px',
+                                                height: '14px',
+                                                fontSize: '9px',
+                                                fontWeight: 'bold',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                padding: '0 2px',
+                                                border: `1.5px solid ${COLORS.white}`,
+                                            }}>
+                                                {pinnedDeputies.length}
+                                            </span>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                         {/* Table */}
                         <div style={tableWrapperStyle}>
                             <table style={tableStyle}>
@@ -832,9 +966,11 @@ export default function Deputados() {
 
                         {/* Footer: page info + pagination + count */}
                         <div style={paginationStyle}>
-                            <span style={paginationInfoStyle}>
-                                {totalPages > 1 ? `Página ${currentPage} de ${totalPages}` : ''}
-                            </span>
+                            {!isMobile && (
+                                <span style={paginationInfoStyle}>
+                                    {totalPages > 1 ? `Página ${currentPage} de ${totalPages}` : ''}
+                                </span>
+                            )}
 
                             {totalPages > 1 && (
                                 <div style={paginationButtonsStyle}>
@@ -878,70 +1014,187 @@ export default function Deputados() {
                                 </div>
                             )}
 
-                            <span style={paginationInfoStyle}>
-                                {sortedDeputies.length} deputados encontrados
-                            </span>
+                            {!isMobile && (
+                                <span style={paginationInfoStyle}>
+                                    {sortedDeputies.length} deputados encontrados
+                                </span>
+                            )}
                         </div>
                     </>
                 )}
             </div>
 
             {/* Right panels */}
-            <div style={{
-                position: 'absolute',
-                top: topOffset,
-                right: SPACING.frameGap,
-                bottom: SPACING.frameGap,
-                width: panelWidth,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: SPACING.frameGap,
-                pointerEvents: 'none',
-                zIndex: 10,
-            }}>
-                <div style={{ pointerEvents: 'auto' }}>
-                    <RankingPanel
-                        sortBy={sortBy}
-                        onSortChange={(e) => setSortBy(e.target.value)}
-                        expenseCategories={expenseCategories}
-                        selectedExpenseCategory={selectedExpenseCategory}
-                        onExpenseCategoryChange={setSelectedExpenseCategory}
-                        selectedExpenseYear={selectedExpenseYear}
-                        onExpenseYearChange={setSelectedExpenseYear}
-                        selectedProposalType={selectedProposalType}
-                        onProposalTypeChange={setSelectedProposalType}
-                    />
-                </div>
+            {!isMobile && (
+                <div style={{
+                    position: 'absolute',
+                    top: topOffset,
+                    right: SPACING.frameGap,
+                    bottom: SPACING.frameGap,
+                    width: panelWidth,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: SPACING.frameGap,
+                    pointerEvents: 'none',
+                    zIndex: 10,
+                }}>
+                    <div style={{ pointerEvents: 'auto' }}>
+                        <RankingPanel
+                            sortBy={sortBy}
+                            onSortChange={(e) => setSortBy(e.target.value)}
+                            expenseCategories={expenseCategories}
+                            selectedExpenseCategory={selectedExpenseCategory}
+                            onExpenseCategoryChange={setSelectedExpenseCategory}
+                            selectedExpenseYear={selectedExpenseYear}
+                            onExpenseYearChange={setSelectedExpenseYear}
+                            selectedProposalType={selectedProposalType}
+                            onProposalTypeChange={setSelectedProposalType}
+                        />
+                    </div>
 
-                <div style={{ pointerEvents: 'auto', flex: openPanel === 'filtros' ? '0 1 auto' : '0 0 auto', minHeight: 0 }}>
-                    <ListFiltersPanel
-                        filters={filters}
-                        onApply={handleApplyFilters}
-                        isMinimized={openPanel !== 'filtros'}
-                        onToggleMinimize={() => handleTogglePanel('filtros')}
-                    />
-                </div>
+                    <div style={{ pointerEvents: 'auto', flex: openPanel === 'filtros' ? '0 1 auto' : '0 0 auto', minHeight: 0 }}>
+                        <ListFiltersPanel
+                            filters={filters}
+                            onApply={handleApplyFilters}
+                            isMinimized={openPanel !== 'filtros'}
+                            onToggleMinimize={() => handleTogglePanel('filtros')}
+                        />
+                    </div>
 
-                <div style={{ pointerEvents: 'auto', flex: openPanel === 'campos' ? '0 1 auto' : '0 0 auto', minHeight: 0, position: 'relative', zIndex: 20 }}>
-                    <FieldsPanel
-                        selectedFields={selectedFields}
-                        onFieldsChange={setSelectedFields}
-                        isMinimized={openPanel !== 'campos'}
-                        onToggleMinimize={() => handleTogglePanel('campos')}
-                    />
-                </div>
+                    <div style={{ pointerEvents: 'auto', flex: openPanel === 'campos' ? '0 1 auto' : '0 0 auto', minHeight: 0, position: 'relative', zIndex: 20 }}>
+                        <FieldsPanel
+                            selectedFields={selectedFields}
+                            onFieldsChange={setSelectedFields}
+                            isMinimized={openPanel !== 'campos'}
+                            onToggleMinimize={() => handleTogglePanel('campos')}
+                        />
+                    </div>
 
-                <div style={{ pointerEvents: 'auto', flex: openPanel === 'fixados' ? '0 1 auto' : '0 0 auto', minHeight: 0 }}>
-                    <PinnedPanel
-                        pinnedDeputies={pinnedDeputies}
-                        onRemove={handleRemovePinned}
-                        onSelect={handleSearchSelectDeputyList}
-                        isMinimized={openPanel !== 'fixados'}
-                        onToggleMinimize={() => handleTogglePanel('fixados')}
-                        deputyRankings={deputyRankings}
-                    />
+                    <div style={{ pointerEvents: 'auto', flex: openPanel === 'fixados' ? '0 1 auto' : '0 0 auto', minHeight: 0 }}>
+                        <PinnedPanel
+                            pinnedDeputies={pinnedDeputies}
+                            onRemove={handleRemovePinned}
+                            onSelect={handleSearchSelectDeputyList}
+                            isMinimized={openPanel !== 'fixados'}
+                            onToggleMinimize={() => handleTogglePanel('fixados')}
+                            deputyRankings={deputyRankings}
+                        />
+                    </div>
                 </div>
-            </div>
+            )}
+
+            {/* Mobile Drawers & Bottom Bar */}
+            {isMobile && (
+                <>
+                    {/* Bottom Drawer Overlay */}
+                    {openPanel && (
+                        <>
+                            {/* Backdrop */}
+                            <div
+                                onClick={() => setOpenPanel(null)}
+                                style={{
+                                    position: 'fixed',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                                    zIndex: 101,
+                                }}
+                            />
+                            {/* Drawer Content */}
+                            <div style={{
+                                position: 'fixed',
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                maxHeight: '80vh',
+                                backgroundColor: COLORS.frameBg,
+                                borderRadius: '16px 16px 0 0',
+                                boxShadow: '0 -4px 20px rgba(0,0,0,0.15)',
+                                zIndex: 102,
+                                overflowY: 'auto',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                paddingBottom: '24px',
+                            }}>
+                                {/* Drawer Header */}
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: `${SPACING.md} ${SPACING.lg}`,
+                                    borderBottom: `1px solid ${COLORS.borderLight}`,
+                                    position: 'sticky',
+                                    top: 0,
+                                    backgroundColor: COLORS.frameBg,
+                                    zIndex: 5,
+                                }}>
+                                    <span style={{ fontSize: '16px', fontWeight: 'bold', color: COLORS.textDark }}>
+                                        {openPanel === 'ordenar' ? 'Ordenar Lista' : openPanel === 'filtros' ? 'Filtros da Lista' : openPanel === 'campos' ? 'Selecionar Campos' : 'Fixados'}
+                                    </span>
+                                </div>
+
+                                {/* Drawer Body */}
+                                <div style={{ padding: SPACING.md }}>
+                                    {openPanel === 'ordenar' && (
+                                        <RankingPanel
+                                            sortBy={sortBy}
+                                            onSortChange={(e) => setSortBy(e.target.value)}
+                                            expenseCategories={expenseCategories}
+                                            selectedExpenseCategory={selectedExpenseCategory}
+                                            onExpenseCategoryChange={setSelectedExpenseCategory}
+                                            selectedExpenseYear={selectedExpenseYear}
+                                            onExpenseYearChange={setSelectedExpenseYear}
+                                            selectedProposalType={selectedProposalType}
+                                            onProposalTypeChange={setSelectedProposalType}
+                                            isMinimized={false}
+                                            width="100%"
+                                        />
+                                    )}
+
+                                    {openPanel === 'filtros' && (
+                                        <ListFiltersPanel
+                                            filters={filters}
+                                            onApply={(newFilters) => {
+                                                handleApplyFilters(newFilters);
+                                                setOpenPanel(null); // Close drawer on apply
+                                            }}
+                                            isMinimized={false}
+                                            width="100%"
+                                        />
+                                    )}
+
+                                    {openPanel === 'campos' && (
+                                        <FieldsPanel
+                                            selectedFields={selectedFields}
+                                            onFieldsChange={setSelectedFields}
+                                            isMinimized={false}
+                                            width="100%"
+                                        />
+                                    )}
+
+                                    {openPanel === 'fixados' && (
+                                        <PinnedPanel
+                                            pinnedDeputies={pinnedDeputies}
+                                            onRemove={handleRemovePinned}
+                                            onSelect={(dep) => {
+                                                handleSearchSelectDeputyList(dep);
+                                                setOpenPanel(null); // Close drawer on select
+                                            }}
+                                            isMinimized={false}
+                                            width="100%"
+                                            deputyRankings={deputyRankings}
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {/* No Bottom Nav Bar */}
+                </>
+            )}
 
             {/* Deputy Profile modal */}
             <DeputyProfile

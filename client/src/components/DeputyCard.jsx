@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import Button from './Button';
 import { COLORS, SPACING, FONTS, SHADOWS, PARTY_COLORS, STATE_COLORS, SEX_COLORS, COMMUNITY_COLORS } from '../constants/theme';
 import { Pin, PinOff } from 'lucide-react';
+import { useIsMobile } from '../utils/useIsMobile';
 
 const SEX_LABELS = { M: 'Masculino', F: 'Feminino', O: 'Outro' };
 
@@ -81,6 +82,7 @@ export default function DeputyCard({
     const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
     const [connectionsExpanded, setConnectionsExpanded] = useState(false);
     const barRef = useRef(null);
+    const isMobile = useIsMobile();
 
     if (!visible || !deputy) return null;
 
@@ -100,9 +102,11 @@ export default function DeputyCard({
     // Outer wrapper — has NO overflow:hidden so photo can stick out
     const outerStyle = {
         position: 'fixed',
-        top: topOffset,
-        left: SPACING.frameGap,
-        width: '280px',
+        top: isMobile ? '60px' : topOffset,
+        bottom: 'auto',
+        left: isMobile ? '16px' : SPACING.frameGap,
+        right: isMobile ? '16px' : 'auto',
+        width: isMobile ? 'auto' : '280px',
         zIndex: 10,
     };
 
@@ -111,7 +115,8 @@ export default function DeputyCard({
         backgroundColor: COLORS.frameBg,
         borderRadius: SPACING.radiusLg,
         boxShadow: SHADOWS.frame,
-        overflow: 'hidden',
+        overflowY: 'auto',
+        maxHeight: isMobile ? 'calc(100vh - 180px)' : 'none',
     };
 
     // Colored header bar

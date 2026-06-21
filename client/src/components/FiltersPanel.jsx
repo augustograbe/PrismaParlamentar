@@ -14,7 +14,18 @@ import { COLORS, SPACING, FONTS } from '../constants/theme';
  * Props:
  * - onApply: callback (filters) ao clicar em Aplicar
  */
-export default function FiltersPanel({ filters, onApply, graphType = 'similaridade', maxCoautoriaLimit = 50, isMinimized, onToggleMinimize }) {
+export default function FiltersPanel({ 
+    filters, 
+    onApply, 
+    graphType = 'similaridade', 
+    maxCoautoriaLimit = 50, 
+    isMinimized, 
+    onToggleMinimize, 
+    width = '250px', 
+    height = 'auto',
+    style = {},
+    hideHeader = false 
+}) {
     const [separateBy, setSeparateBy] = useState('partido');
     const [onlyActive, setOnlyActive] = useState(true);
     const [highlightPinned, setHighlightPinned] = useState(true);
@@ -195,10 +206,10 @@ export default function FiltersPanel({ filters, onApply, graphType = 'similarida
 
     return (
         <Frame
-            width="250px"
-            height="auto"
+            width={width}
+            height={height}
             position={{ position: 'relative' }}
-            style={{ flex: isMinimized ? '0 0 auto' : '0 1 auto', minHeight: 0 }}
+            style={{ flex: isMinimized ? '0 0 auto' : '0 1 auto', minHeight: 0, ...style }}
             title={
                 <span style={{ display: 'flex', alignItems: 'center', gap: SPACING.sm }}>
                     <span style={{ color: COLORS.orange, display: 'flex' }}>{filterIcon}</span> Filtros
@@ -207,6 +218,7 @@ export default function FiltersPanel({ filters, onApply, graphType = 'similarida
             showMinimize={true}
             isMinimized={isMinimized}
             onToggleMinimize={onToggleMinimize}
+            hideHeader={hideHeader}
         >
             <div style={contentStyle}>
                 <Dropdown

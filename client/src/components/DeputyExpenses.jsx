@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { COLORS, FONTS, SPACING } from '../constants/theme';
+import { useIsMobile } from '../utils/useIsMobile';
 
 const MONTH_NAMES = [
     'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
@@ -22,6 +23,7 @@ export default function DeputyExpenses({ deputyId }) {
     const [hoveredBar, setHoveredBar] = useState(null);
     const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
     const chartRef = useRef(null);
+    const isMobile = useIsMobile();
 
     const years = [2026, 2025, 2024, 2023];
 
@@ -261,17 +263,15 @@ export default function DeputyExpenses({ deputyId }) {
                             </button>
                         )}
                     </div>
-
-                    {/* Chart columns row */}
-                    <div style={{ display: 'flex', alignItems: 'flex-end', flex: 1 }}>
-                        {/* Years Selector aligned vertically, moved to the left side with marginRight */}
+                    {/* Years Selector on Mobile (horizontal above chart) */}
+                    {isMobile && (
                         <div style={{
                             display: 'flex',
-                            flexDirection: 'column',
+                            flexDirection: 'row',
                             justifyContent: 'space-between',
-                            height: '120px',
-                            marginRight: SPACING.lg,
-                            marginBottom: '20px',
+                            width: '100%',
+                            gap: '6px',
+                            marginBottom: SPACING.md,
                             flexShrink: 0,
                         }}>
                             {years.map(year => (
@@ -292,6 +292,7 @@ export default function DeputyExpenses({ deputyId }) {
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
+                                        flex: 1,
                                         boxShadow: selectedYear === year ? '0 1px 3px rgba(0,0,0,0.15)' : 'none'
                                     }}
                                 >
@@ -299,6 +300,47 @@ export default function DeputyExpenses({ deputyId }) {
                                 </button>
                             ))}
                         </div>
+                    )}
+
+                    {/* Chart columns row */}
+                    <div style={{ display: 'flex', alignItems: 'flex-end', flex: 1 }}>
+                        {/* Years Selector aligned vertically on Desktop */}
+                        {!isMobile && (
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'space-between',
+                                height: '120px',
+                                marginRight: SPACING.lg,
+                                marginBottom: '20px',
+                                flexShrink: 0,
+                            }}>
+                                {years.map(year => (
+                                    <button
+                                        key={year}
+                                        onClick={() => setSelectedYear(year)}
+                                        style={{
+                                            background: selectedYear === year ? COLORS.orange : 'transparent',
+                                            color: selectedYear === year ? 'white' : COLORS.textMedium,
+                                            border: selectedYear === year ? 'none' : `1px solid ${COLORS.borderLight}`,
+                                            padding: '0 8px',
+                                            height: '22px',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer',
+                                            fontSize: '11px',
+                                            fontWeight: selectedYear === year ? 'bold' : 'normal',
+                                            transition: 'background 0.2s, border-color 0.2s',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            boxShadow: selectedYear === year ? '0 1px 3px rgba(0,0,0,0.15)' : 'none'
+                                        }}
+                                    >
+                                        {year}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
 
                         {/* Chart columns area */}
                         <div style={{
@@ -454,7 +496,14 @@ export default function DeputyExpenses({ deputyId }) {
                         {gaugeTitle}
                     </span>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: SPACING.lg, flex: 1 }}>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: SPACING.lg,
+                        flex: 1,
+                        flexDirection: isMobile ? 'column' : 'row',
+                        textAlign: isMobile ? 'center' : 'left',
+                    }}>
                         {/* Circular Gauge */}
                         <div style={{ position: 'relative', width: '96px', height: '96px', flexShrink: 0 }}>
                             <svg width="96" height="96" viewBox="0 0 96 96">
@@ -745,7 +794,7 @@ export default function DeputyExpenses({ deputyId }) {
                                                                 }}>
                                                                     <div style={{
                                                                         display: 'grid',
-                                                                        gridTemplateColumns: '80px 1fr 100px 80px',
+                                                                        gridTemplateColumns: isMobile ? '70px 1fr 80px 40px' : '80px 1fr 100px 80px',
                                                                         gap: '8px',
                                                                         borderBottom: `1px solid ${COLORS.borderLight}`,
                                                                         paddingBottom: '4px',
@@ -775,7 +824,7 @@ export default function DeputyExpenses({ deputyId }) {
                                                                                 key={despIdx}
                                                                                 style={{
                                                                                     display: 'grid',
-                                                                                    gridTemplateColumns: '80px 1fr 100px 80px',
+                                                                                    gridTemplateColumns: isMobile ? '70px 1fr 80px 40px' : '80px 1fr 100px 80px',
                                                                                     gap: '8px',
                                                                                     alignItems: 'center',
                                                                                     fontSize: '12px',
@@ -810,7 +859,7 @@ export default function DeputyExpenses({ deputyId }) {
                                                                                             onMouseLeave={(e) => e.currentTarget.style.opacity = 1}
                                                                                             onClick={(e) => e.stopPropagation()}
                                                                                         >
-                                                                                            Nota
+                                                                                            {!isMobile && 'Nota'}
                                                                                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                                                                                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                                                                                                 <polyline points="15 3 21 3 21 9"></polyline>

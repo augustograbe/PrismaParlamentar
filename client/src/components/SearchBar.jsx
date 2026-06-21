@@ -26,6 +26,9 @@ export default function SearchBar({
     suggestions = [],
     onSelectSuggestion,
     onSelectProfile,
+    isMobile = false,
+    searchActive = false,
+    onToggleSearch,
 }) {
     const [query, setQuery] = useState(value || '');
     const [showDropdown, setShowDropdown] = useState(false);
@@ -38,6 +41,7 @@ export default function SearchBar({
     // Sincronizar com value externo
     useEffect(() => {
         if (value !== undefined) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setQuery(value);
         }
     }, [value]);
@@ -57,19 +61,32 @@ export default function SearchBar({
     const hasQuery = query.length >= 1;
     const showResults = showDropdown && hasQuery;
 
-    // Fechar dropdown ao clicar fora
+    // Fechar dropdown e barra de pesquisa ao clicar fora (usa capture phase para evitar stopPropagation do canvas/sigma)
     useEffect(() => {
         function handleClickOutside(e) {
             if (containerRef.current && !containerRef.current.contains(e.target)) {
                 setShowDropdown(false);
+                if (isMobile && searchActive) {
+                    onToggleSearch?.();
+                }
             }
         }
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+        document.addEventListener('mousedown', handleClickOutside, true);
+        return () => document.removeEventListener('mousedown', handleClickOutside, true);
+    }, [isMobile, searchActive, onToggleSearch]);
+
+    // Limpar pesquisa e tirar foco ao colapsar no mobile
+    useEffect(() => {
+        if (isMobile && !searchActive) {
+            inputRef.current?.blur();
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setQuery('');
+        }
+    }, [searchActive, isMobile]);
 
     // Reset highlighted index quando sugestões mudam
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setHighlightedIndex(0);
     }, [filteredSuggestions.length, query]);
 
@@ -123,15 +140,17 @@ export default function SearchBar({
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
-        width: '100%',
+        width: isMobile ? (searchActive ? '100%' : '36px') : '100%',
+        transition: isMobile ? 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
         ...style,
     };
 
     const inputContainerStyle = {
+        position: 'relative',
         display: 'flex',
         alignItems: 'center',
-        backgroundColor: COLORS.white,
-        border: `1px solid ${
+        backgroundColor: isMobile && !searchActive ? 'transparent' : COLORS.white,
+        border: isMobile && !searchActive ? '1px solid transparent' : `1px solid ${
             isFocused || showResults 
                 ? COLORS.orange 
                 : isHovered 
@@ -139,20 +158,28 @@ export default function SearchBar({
                     : COLORS.borderLight
         }`,
         borderRadius: showResults ? `${SPACING.radiusMd} ${SPACING.radiusMd} 0 0` : SPACING.radiusMd,
-        padding: `${SPACING.sm} ${SPACING.md}`,
-        gap: SPACING.sm,
+        padding: isMobile 
+            ? (searchActive ? `${SPACING.sm} 36px ${SPACING.sm} ${SPACING.md}` : '0') 
+            : `${SPACING.sm} ${SPACING.md}`,
         width: '100%',
-        transition: 'border-color 0.2s ease',
+        height: isMobile ? '36px' : 'auto',
+        cursor: isMobile && !searchActive ? 'pointer' : 'default',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        boxSizing: 'border-box',
     };
 
     const inputStyle = {
         border: 'none',
         outline: 'none',
         flex: 1,
+        width: '100%',
+        opacity: isMobile ? (searchActive ? 1 : 0) : 1,
+        pointerEvents: isMobile && !searchActive ? 'none' : 'auto',
         fontSize: FONTS.sizeMd,
         fontFamily: FONTS.family,
         color: COLORS.textDark,
         backgroundColor: 'transparent',
+        transition: 'opacity 0.2s ease',
     };
 
     const dropdownStyle = {
@@ -270,8 +297,24 @@ export default function SearchBar({
         return result;
     };
 
+    const handleContainerClick = (e) => {
+        if (isMobile && !searchActive) {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggleSearch?.();
+        }
+    };
+
+    const handleIconClick = (e) => {
+        if (isMobile) {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggleSearch?.();
+        }
+    };
+
     return (
-        <div ref={containerRef} style={containerStyle}>
+        <div ref={containerRef} style={containerStyle} onClick={handleContainerClick}>
             <div 
                 style={inputContainerStyle}
                 onMouseEnter={() => setIsHovered(true)}
@@ -292,13 +335,20 @@ export default function SearchBar({
                     style={inputStyle}
                 />
                 <svg
-                    width="16"
-                    height="16"
+                    onClick={handleIconClick}
+                    width={isMobile ? "20" : "16"}
+                    height={isMobile ? "20" : "16"}
                     viewBox="0 0 16 16"
                     fill="none"
-                    stroke={showResults ? COLORS.orange : COLORS.textLight}
+                    stroke={showResults || (isMobile && searchActive) ? COLORS.orange : COLORS.textLight}
                     strokeWidth="2"
-                    style={{ transition: 'stroke 0.2s ease' }}
+                    style={{
+                        position: isMobile ? 'absolute' : 'static',
+                        right: isMobile ? '8px' : 'auto',
+                        transition: 'stroke 0.2s ease',
+                        cursor: isMobile ? 'pointer' : 'default',
+                        flexShrink: 0,
+                    }}
                 >
                     <circle cx="7" cy="7" r="5" />
                     <path d="M11 11L15 15" />

@@ -13,7 +13,7 @@ import { COLORS, SPACING } from '../constants/theme';
  * - onApply: callback (filters)
  * - isMinimized / onToggleMinimize
  */
-export default function ListFiltersPanel({ filters, onApply, isMinimized, onToggleMinimize }) {
+export default function ListFiltersPanel({ filters, onApply, isMinimized, onToggleMinimize, width = '250px' }) {
     const [onlyActive, setOnlyActive] = useState(true);
     const [presence, setPresence] = useState({ min: 0, max: 100 });
 
@@ -38,7 +38,7 @@ export default function ListFiltersPanel({ filters, onApply, isMinimized, onTogg
 
     return (
         <Frame
-            width="250px"
+            width={width}
             height="auto"
             position={{ position: 'relative' }}
             style={{ flex: isMinimized ? '0 0 auto' : '0 1 auto', minHeight: 0 }}

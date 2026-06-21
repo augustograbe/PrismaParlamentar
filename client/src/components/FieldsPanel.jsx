@@ -31,7 +31,7 @@ const ALL_FIELD_OPTIONS = [
     { value: 'proposicoes', label: 'Proposições' },
 ];
 
-export default function FieldsPanel({ selectedFields, onFieldsChange, isMinimized, onToggleMinimize }) {
+export default function FieldsPanel({ selectedFields, onFieldsChange, isMinimized, onToggleMinimize, width = '250px' }) {
 
     const fieldsIcon = (
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={COLORS.orange} strokeWidth="1.5" strokeLinecap="round">
@@ -43,7 +43,7 @@ export default function FieldsPanel({ selectedFields, onFieldsChange, isMinimize
 
     return (
         <Frame
-            width="250px"
+            width={width}
             height="auto"
             position={{ position: 'relative' }}
             style={{ flex: isMinimized ? '0 0 auto' : '0 1 auto', minHeight: 0 }}

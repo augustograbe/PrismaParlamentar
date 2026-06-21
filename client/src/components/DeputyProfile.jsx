@@ -4,6 +4,7 @@ import { COLORS, SPACING, FONTS, SHADOWS } from '../constants/theme';
 import ActivityCalendar from './ActivityCalendar';
 import DeputyStats from './DeputyStats';
 import DeputyExpenses from './DeputyExpenses';
+import { useIsMobile } from '../utils/useIsMobile';
 
 /**
  * DeputyProfile - Painel de perfil expandido do deputado
@@ -23,15 +24,16 @@ const TABS = [
 
 export default function DeputyProfile({ deputy = null, visible = false, onClose }) {
     const [activeTab, setActiveTab] = useState('atividade');
+    const isMobile = useIsMobile();
 
     if (!visible || !deputy) return null;
 
     const headerColor = deputy.nodeColor || COLORS.deputyHeaderGreen;
     const photoUrl = deputy.url_foto || deputy.urlFoto;
 
-    const PHOTO_SIZE = 130;
+    const PHOTO_SIZE = isMobile ? 100 : 130;
     const HEADER_HEIGHT = 40;
-    const PHOTO_OVERLAP = 30;
+    const PHOTO_OVERLAP = isMobile ? 0 : 30;
 
 
     // Overlay — covers entire page, but keeps profile below topbar via padding
@@ -42,20 +44,21 @@ export default function DeputyProfile({ deputy = null, visible = false, onClose 
         right: 0,
         bottom: 0,
         backgroundColor: 'rgba(0, 0, 0, 0.55)',
-        zIndex: 50,
+        zIndex: 150,
         display: 'flex',
         justifyContent: 'center',
-        alignItems: 'flex-start',
-        paddingTop: `calc(52px + ${SPACING.frameGap} * 3)`,
+        alignItems: isMobile ? 'stretch' : 'flex-start',
+        paddingTop: isMobile ? '0' : `calc(52px + ${SPACING.frameGap} * 3)`,
     };
 
     // Profile card container
     const profileStyle = {
-        width: '1000px',
-        maxWidth: 'calc(100vw - 64px)',
-        maxHeight: `calc(100vh - 52px - ${SPACING.frameGap} - ${SPACING.frameGap} - ${SPACING.frameGap} - ${SPACING.frameGap})`,
+        width: isMobile ? '100%' : '1000px',
+        maxWidth: isMobile ? '100vw' : 'calc(100vw - 64px)',
+        height: isMobile ? '100%' : 'auto',
+        maxHeight: isMobile ? '100vh' : `calc(100vh - 52px - ${SPACING.frameGap} - ${SPACING.frameGap} - ${SPACING.frameGap} - ${SPACING.frameGap})`,
         backgroundColor: COLORS.frameBg,
-        borderRadius: SPACING.radiusLg,
+        borderRadius: isMobile ? 0 : SPACING.radiusLg,
         boxShadow: '0 8px 40px rgba(0, 0, 0, 0.3)',
         overflow: 'hidden',
         display: 'flex',
@@ -90,9 +93,10 @@ export default function DeputyProfile({ deputy = null, visible = false, onClose 
 
     // Photo circle
     const photoWrapperStyle = {
-        position: 'absolute',
-        top: `${HEADER_HEIGHT - PHOTO_OVERLAP}px`,
-        left: SPACING.xl,
+        position: isMobile ? 'relative' : 'absolute',
+        top: isMobile ? '12px' : `${HEADER_HEIGHT - PHOTO_OVERLAP}px`,
+        left: isMobile ? '50%' : SPACING.xl,
+        transform: isMobile ? 'translateX(-50%)' : 'none',
         width: `${PHOTO_SIZE}px`,
         height: `${PHOTO_SIZE}px`,
         borderRadius: '50%',
@@ -104,6 +108,7 @@ export default function DeputyProfile({ deputy = null, visible = false, onClose 
         justifyContent: 'center',
         zIndex: 3,
         boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+        flexShrink: 0,
     };
 
     const photoImgStyle = {
@@ -114,28 +119,33 @@ export default function DeputyProfile({ deputy = null, visible = false, onClose 
     };
 
     // Body area below header
-    const bodyPaddingTop = PHOTO_SIZE - PHOTO_OVERLAP + 12;
+    const bodyPaddingTop = isMobile ? 12 : PHOTO_SIZE - PHOTO_OVERLAP + 12;
 
     const bodyStyle = {
-        paddingTop: `${bodyPaddingTop}px`,
+        paddingTop: isMobile ? '8px' : `${bodyPaddingTop}px`,
         paddingLeft: SPACING.xl,
         paddingRight: SPACING.xl,
-        paddingBottom: SPACING.lg,
+        paddingBottom: isMobile ? '8px' : SPACING.lg,
+        display: 'flex',
+        flexDirection: 'column',
+        flexShrink: 0,
     };
 
     // Info block — next to photo
     const infoBlockStyle = {
-        marginLeft: `${PHOTO_SIZE + 16}px`,
+        marginLeft: isMobile ? '0' : `${PHOTO_SIZE + 16}px`,
         display: 'flex',
         flexDirection: 'column',
         gap: '4px',
-        minHeight: `${PHOTO_SIZE - PHOTO_OVERLAP - 4}px`,
+        minHeight: isMobile ? 'auto' : `${PHOTO_SIZE - PHOTO_OVERLAP - 4}px`,
         justifyContent: 'center',
-        marginTop: `-${bodyPaddingTop - 12}px`,
+        marginTop: isMobile ? '12px' : `-${bodyPaddingTop - 12}px`,
+        alignItems: isMobile ? 'center' : 'flex-start',
+        textAlign: isMobile ? 'center' : 'left',
     };
 
     const nameStyle = {
-        fontSize: FONTS.sizeXl,
+        fontSize: isMobile ? '18px' : FONTS.sizeXl,
         fontWeight: FONTS.weightSemibold,
         color: COLORS.textDark,
         lineHeight: 1.2,
@@ -162,14 +172,18 @@ export default function DeputyProfile({ deputy = null, visible = false, onClose 
     const tabBarStyle = {
         display: 'flex',
         borderBottom: `2px solid ${COLORS.borderLight}`,
-        marginTop: SPACING.lg,
+        marginTop: isMobile ? SPACING.sm : SPACING.lg,
         flexShrink: 0,
+        overflowX: isMobile ? 'auto' : 'visible',
+        width: '100%',
+        scrollbarWidth: 'none', // for Firefox
+        WebkitOverflowScrolling: 'touch',
     };
 
     const getTabStyle = (tabId) => ({
-        flex: 1,
-        padding: `${SPACING.md} ${SPACING.md}`,
-        fontSize: FONTS.sizeMd,
+        flex: isMobile ? '0 0 auto' : 1,
+        padding: isMobile ? `${SPACING.sm} ${SPACING.md}` : `${SPACING.md} ${SPACING.md}`,
+        fontSize: isMobile ? '13px' : FONTS.sizeMd,
         fontWeight: activeTab === tabId ? FONTS.weightSemibold : FONTS.weightMedium,
         fontFamily: FONTS.family,
         color: activeTab === tabId ? COLORS.orange : COLORS.textMedium,
@@ -180,14 +194,15 @@ export default function DeputyProfile({ deputy = null, visible = false, onClose 
         transition: 'color 0.2s, border-color 0.2s, background-color 0.2s',
         textAlign: 'center',
         marginBottom: '-2px',
+        whiteSpace: 'nowrap',
     });
 
     // Tab content area
     const tabContentStyle = {
         flex: 1,
         overflow: 'auto',
-        padding: SPACING.xl,
-        minHeight: '300px',
+        padding: isMobile ? SPACING.md : SPACING.xl,
+        minHeight: isMobile ? '200px' : '300px',
     };
 
     const emptyTabStyle = {

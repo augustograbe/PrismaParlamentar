@@ -17,7 +17,8 @@ export default function RankingPanel({
     selectedExpenseYear = 'mandato',
     onExpenseYearChange,
     selectedProposalType = 'PL+PLP+PEC',
-    onProposalTypeChange
+    onProposalTypeChange,
+    width = '250px'
 }) {
 
     const rankingIcon = (
@@ -48,7 +49,7 @@ export default function RankingPanel({
 
     return (
         <Frame
-            width="250px"
+            width={width}
             height="auto"
             position={{ position: 'relative' }}
             style={{ flex: '0 0 auto' }}

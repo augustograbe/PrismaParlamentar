@@ -33,6 +33,7 @@ export default function Frame({
     onClose,
     style = {},
     className = '',
+    hideHeader = false,
 }) {
     const [internalIsMinimized, setInternalIsMinimized] = useState(false);
     const [isVisible, setIsVisible] = useState(true);
@@ -54,7 +55,7 @@ export default function Frame({
         }
     };
 
-    const hasHeader = title || showClose || showMinimize || headerColor !== 'transparent';
+    const hasHeader = !hideHeader && (title || showClose || showMinimize || headerColor !== 'transparent');
 
     const frameStyle = {
         position: 'fixed',

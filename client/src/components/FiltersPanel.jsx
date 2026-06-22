@@ -131,6 +131,7 @@ export default function FiltersPanel({
         { value: 'padrao', label: 'Padrão' },
         { value: 'presenca', label: 'Presença' },
         { value: 'conexoes', label: 'Conexões' },
+        { value: 'centralidade', label: 'Centralidade' },
         { value: 'despesas', label: 'Despesas' },
         { value: 'discursos', label: 'Discursos' },
         { value: 'proposicoes', label: 'Proposições' },

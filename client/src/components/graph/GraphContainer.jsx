@@ -24,6 +24,79 @@ const SigmaInstanceListener = ({ onSigmaReady }) => {
 };
 
 /**
+ * Calcula a centralidade de proximidade (Closeness Centrality) não ponderada
+ * para todos os nós visíveis do grafo usando busca em largura (BFS).
+ * Usa a fórmula com wf_improved=True do NetworkX:
+ * C(u) = (n-1)/(N-1) * (n-1)/sum(d(v,u))
+ */
+function computeClosenessCentrality(graph) {
+    const visibleNodes = [];
+    graph.forEachNode((nodeId) => {
+        if (!graph.getNodeAttribute(nodeId, 'hidden')) {
+            visibleNodes.push(nodeId);
+        }
+    });
+
+    const N = visibleNodes.length;
+    const centrality = {};
+
+    if (N <= 1) {
+        visibleNodes.forEach(nodeId => {
+            centrality[nodeId] = 0;
+        });
+        return centrality;
+    }
+
+    // Construir lista de adjacência de nós visíveis
+    const adj = {};
+    visibleNodes.forEach(nodeId => {
+        adj[nodeId] = [];
+    });
+
+    graph.forEachEdge((edgeId, attrs, source, target) => {
+        if (attrs.hidden) return;
+        if (!graph.getNodeAttribute(source, 'hidden') && !graph.getNodeAttribute(target, 'hidden')) {
+            adj[source].push(target);
+            adj[target].push(source);
+        }
+    });
+
+    for (let i = 0; i < N; i++) {
+        const startNode = visibleNodes[i];
+        const distances = {};
+        distances[startNode] = 0;
+        const queue = [startNode];
+        let head = 0;
+
+        while (head < queue.length) {
+            const u = queue[head++];
+            const distU = distances[u];
+            const neighbors = adj[u] || [];
+            for (let j = 0; j < neighbors.length; j++) {
+                const v = neighbors[j];
+                if (distances[v] === undefined) {
+                    distances[v] = distU + 1;
+                    queue.push(v);
+                }
+            }
+        }
+
+        const n = queue.length; // Componente conectado alcançável
+        if (n <= 1) {
+            centrality[startNode] = 0;
+        } else {
+            let sumDistances = 0;
+            for (let j = 0; j < n; j++) {
+                sumDistances += distances[queue[j]];
+            }
+            centrality[startNode] = ((n - 1) / (N - 1)) * ((n - 1) / sumDistances);
+        }
+    }
+
+    return centrality;
+}
+
+/**
  * Retorna o ID da comunidade do deputado baseado no algoritmo e tipo de grafo.
  */
 function getCommunityId(deputy, graphType, dynamicCommunityMap = null) {
@@ -677,6 +750,43 @@ const GraphContainer = memo(function GraphContainer({ filters, graphType = 'simi
             graph.forEachNode((nodeId) => {
                 graph.setNodeAttribute(nodeId, 'size', DEFAULT_SIZE);
             });
+        } else if (vertexSize === 'centralidade') {
+            // Tamanho baseado no ranking de centralidade no grafo atual para garantir contraste visual
+            const centralityMap = computeClosenessCentrality(graph);
+            const visibleNodesList = [];
+            graph.forEachNode((nodeId) => {
+                if (!graph.getNodeAttribute(nodeId, 'hidden')) {
+                    visibleNodesList.push(nodeId);
+                }
+            });
+
+            const N = visibleNodesList.length;
+            if (N <= 1) {
+                graph.forEachNode((nodeId) => {
+                    graph.setNodeAttribute(nodeId, 'size', DEFAULT_SIZE);
+                });
+            } else {
+                // Ordenar nós por valor de centralidade (crescente)
+                const sortedByCentrality = visibleNodesList
+                    .map(nodeId => ({ nodeId, val: centralityMap[nodeId] || 0 }))
+                    .sort((a, b) => a.val - b.val);
+
+                // Atribuir tamanhos baseados na posição ordenada (ranking) com escala quadrática
+                // para dar maior destaque e diferenciação visual aos líderes do ranking
+                sortedByCentrality.forEach((item, index) => {
+                    const normalized = index / (N - 1);
+                    const scaled = Math.pow(normalized, 2);
+                    const size = MIN_SIZE + scaled * (MAX_SIZE - MIN_SIZE);
+                    graph.setNodeAttribute(item.nodeId, 'size', size);
+                });
+
+                // Definir tamanho padrão para nós ocultos
+                graph.forEachNode((nodeId) => {
+                    if (graph.getNodeAttribute(nodeId, 'hidden')) {
+                        graph.setNodeAttribute(nodeId, 'size', DEFAULT_SIZE);
+                    }
+                });
+            }
         } else if (vertexSize === 'presenca') {
             // Tamanho proporcional à presença do deputado
             // Coletar os valores de presença dos nós visíveis para normalizar
@@ -1052,25 +1162,51 @@ const GraphContainer = memo(function GraphContainer({ filters, graphType = 'simi
                     });
                 });
 
-                onNodeClick({ ...dep, nodeColor: color, nodeId, conexoes, maxConexoes, connectionBreakdown, connectionsList, graphType });
+                // Calcular Centralidade de Proximidade (Closeness Centrality) dinamicamente para todos os nós visíveis
+                const centralityMap = computeClosenessCentrality(graph);
+                const sortedNodes = Object.entries(centralityMap)
+                    .map(([id, val]) => ({ id, val }))
+                    .sort((a, b) => b.val - a.val);
+                const rankIndex = sortedNodes.findIndex(item => item.id === nodeId);
+                const rank = rankIndex !== -1 ? rankIndex + 1 : null;
+                const totalVisible = sortedNodes.length;
+                const closenessCentrality = centralityMap[nodeId] || 0;
+
+                const graphStateKey = `${graphType}-${edgesVersion}-${JSON.stringify(filters)}`;
+
+                onNodeClick({
+                    ...dep,
+                    nodeColor: color,
+                    nodeId,
+                    conexoes,
+                    maxConexoes,
+                    connectionBreakdown,
+                    connectionsList,
+                    graphType,
+                    closenessCentrality,
+                    centralityRank: rank,
+                    totalVisibleNodes: totalVisible,
+                    graphStateKey
+                });
             }
         },
-        [graph, onNodeClick, filters, graphType, dynamicCommunities],
+        [graph, onNodeClick, filters, graphType, dynamicCommunities, edgesVersion],
     );
 
     useEffect(() => {
         if (selectedNode && dataLoaded && !isComputing) {
+            const graphStateKey = `${graphType}-${edgesVersion}-${JSON.stringify(filters)}`;
             const isFullyLoaded = selectedDeputy &&
                 String(selectedDeputy.id) === selectedNode &&
                 selectedDeputy.connectionsList !== undefined &&
                 selectedDeputy.nodeColor !== undefined &&
-                selectedDeputy.graphType === graphType;
+                selectedDeputy.graphStateKey === graphStateKey;
 
             if (!isFullyLoaded && graph.hasNode(selectedNode)) {
                 handleNodeClick(selectedNode);
             }
         }
-    }, [selectedNode, selectedDeputy, dataLoaded, isComputing, graph, graphType, handleNodeClick]);
+    }, [selectedNode, selectedDeputy, dataLoaded, isComputing, graph, graphType, handleNodeClick, filters, edgesVersion]);
 
     const loadingOverlayStyle = {
         position: 'absolute',

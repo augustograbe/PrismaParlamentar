@@ -192,6 +192,13 @@ export default function InfoFrame({ graphType = 'similaridade', filters, isMobil
                     </span>
                 );
                 break;
+            case 'centralidade':
+                sizeText = (
+                    <span>
+                        {" "}O <strong>tamanho do círculo</strong> de cada deputado é proporcional à sua <strong>centralidade de proximidade (closeness centrality)</strong> na rede atual, evidenciando os parlamentares que estão mais próximos de todos os outros.
+                    </span>
+                );
+                break;
             case 'despesas': {
                 const cat = activeFilters.expenseCategory || 'Todas';
                 const ano = activeFilters.expenseYear || 'mandato';

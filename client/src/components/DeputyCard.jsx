@@ -519,6 +519,32 @@ export default function DeputyCard({
                             )}
                         </div>
                     </div>
+
+                    {/* Centralidade */}
+                    {deputy.centralityRank !== undefined && deputy.centralityRank !== null && (
+                        <div style={statRowStyle}>
+                            <span style={statLabelStyle}>Centralidade:</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{
+                                    backgroundColor: COLORS.orange,
+                                    color: COLORS.white,
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    fontSize: '11px',
+                                    fontWeight: 'bold',
+                                }}>
+                                    {deputy.centralityRank}º / {deputy.totalVisibleNodes}
+                                </span>
+                                <span style={{
+                                    fontSize: '11px',
+                                    color: COLORS.textMedium,
+                                    fontWeight: FONTS.weightMedium
+                                }} title={`Centralidade de Proximidade exata: ${deputy.closenessCentrality.toFixed(5)}`}>
+                                    ({deputy.closenessCentrality.toFixed(3)})
+                                </span>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Expandable connections list */}

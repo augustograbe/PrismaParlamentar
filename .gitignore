@@ -10,6 +10,10 @@ ENV/
 env.bak/
 venv.bak/
 db.sqlite3
+staticfiles/
+.cache/
+DEPLOY.md
+deploy.sh
 
 # Node / React (client folder)
 node_modules/

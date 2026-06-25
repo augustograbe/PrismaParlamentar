@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Prisma Politico is a Django 5 + Django REST Framework backend with a React 19 + Vite frontend. The project models Brazilian Camara dos Deputados data, including deputies, votes, analyses, similarity graphs, and coauthorship graphs.
+Prisma Parlamentar is a Django 5 + Django REST Framework backend with a React 19 + Vite frontend. The project models Brazilian Camara dos Deputados data, including deputies, votes, analyses, similarity graphs, and coauthorship graphs.
 
 ## Repository Layout
 

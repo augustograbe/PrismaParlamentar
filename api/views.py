@@ -2,10 +2,17 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.throttling import AnonRateThrottle
 from deputados.models import Deputado, ProposicaoAutor
 from grafos.models import GrafoAresta, BackboneAresta
 from analises.services import calcular_comunidades_coautoria, calcular_comunidades_votos
 from .serializers import DeputadoSerializer, GrafoArestaSerializer, BackboneArestaSerializer, AtividadeDiariaSerializer
+
+
+class HeavyEndpointThrottle(AnonRateThrottle):
+    """Throttle mais restritivo para endpoints que exigem cálculo pesado."""
+    rate = '5/minute'
+    scope = 'heavy'
 
 
 class DeputadoViewSet(viewsets.ReadOnlyModelViewSet):
@@ -257,6 +264,8 @@ class ArestaCoautoriaViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class ComunidadesVotosView(APIView):
+    throttle_classes = [HeavyEndpointThrottle]
+
     def get(self, request):
         try:
             legislatura = int(request.query_params.get('legislatura', 57))
@@ -290,6 +299,8 @@ class ComunidadesVotosView(APIView):
 
 
 class ComunidadesCoautoriaView(APIView):
+    throttle_classes = [HeavyEndpointThrottle]
+
     def get(self, request):
         try:
             legislatura = int(request.query_params.get('legislatura', 57))
@@ -415,6 +426,8 @@ class DeputadoProposicoesTotaisView(APIView):
 
 class ArestasSimilaridadeFiltradaView(APIView):
     """Calcula arestas de similaridade excluindo votações polarizadas."""
+    throttle_classes = [HeavyEndpointThrottle]
+
     def get(self, request):
         try:
             legislatura = int(request.query_params.get('legislatura', 57))
@@ -441,6 +454,8 @@ class ArestasSimilaridadeFiltradaView(APIView):
 
 class ArestasCoautoriaFiltradaView(APIView):
     """Calcula arestas de coautoria filtrando por tipos de proposição e quantidade de coautores."""
+    throttle_classes = [HeavyEndpointThrottle]
+
     def get(self, request):
         try:
             legislatura = int(request.query_params.get('legislatura', 57))
@@ -472,6 +487,8 @@ class ArestasCoautoriaFiltradaView(APIView):
 
 class ArestasBackboneFiltradaView(APIView):
     """Calcula dinamicamente as arestas de backbone considerando os outros filtros avançados."""
+    throttle_classes = [HeavyEndpointThrottle]
+
     def get(self, request):
         tipo_grafo = request.query_params.get('tipo_grafo', 'similaridade')
         metodo = request.query_params.get('metodo', 'lans')

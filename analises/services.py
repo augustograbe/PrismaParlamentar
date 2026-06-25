@@ -1,4 +1,5 @@
 import networkx as nx
+from django.core.cache import cache
 
 from grafos.models import GrafoAresta
 
@@ -92,6 +93,15 @@ def calcular_comunidades(G, algoritmo):
 
 
 def calcular_comunidades_votos(legislatura, min_similaridade, max_similaridade, algoritmo):
+    # Arredondar para maximizar cache hits
+    min_sim_r = round(min_similaridade, 2)
+    max_sim_r = round(max_similaridade, 2)
+    alg = algoritmo.lower()
+    cache_key = f'comunidades_votos:{legislatura}:{min_sim_r}:{max_sim_r}:{alg}'
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     G = construir_grafo_votos_por_similaridade(
         legislatura=legislatura,
         min_similaridade=min_similaridade,
@@ -99,19 +109,28 @@ def calcular_comunidades_votos(legislatura, min_similaridade, max_similaridade, 
     )
     comunidades = calcular_comunidades(G, algoritmo)
 
-    return {
+    resultado = {
         'legislatura': legislatura,
         'min_similaridade': min_similaridade,
         'max_similaridade': max_similaridade,
-        'algoritmo': algoritmo.lower(),
+        'algoritmo': alg,
         'tipo': 'votos',
         'node_count': G.number_of_nodes(),
         'edge_count': G.number_of_edges(),
         'comunidades': comunidades,
     }
 
+    cache.set(cache_key, resultado, 86400)  # 24 horas
+    return resultado
+
 
 def calcular_comunidades_coautoria(legislatura, min_coautoria, max_coautoria, algoritmo):
+    alg = algoritmo.lower()
+    cache_key = f'comunidades_coautoria:{legislatura}:{min_coautoria}:{max_coautoria}:{alg}'
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     G = construir_grafo_coautoria_por_quantidade(
         legislatura=legislatura,
         min_coautoria=min_coautoria,
@@ -119,13 +138,17 @@ def calcular_comunidades_coautoria(legislatura, min_coautoria, max_coautoria, al
     )
     comunidades = calcular_comunidades(G, algoritmo)
 
-    return {
+    resultado = {
         'legislatura': legislatura,
         'min_coautoria': min_coautoria,
         'max_coautoria': max_coautoria,
-        'algoritmo': algoritmo.lower(),
+        'algoritmo': alg,
         'tipo': 'coautoria',
         'node_count': G.number_of_nodes(),
         'edge_count': G.number_of_edges(),
         'comunidades': comunidades,
     }
+
+    cache.set(cache_key, resultado, 86400)  # 24 horas
+    return resultado
+

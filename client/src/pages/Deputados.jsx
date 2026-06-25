@@ -10,7 +10,7 @@ import { COLORS, SPACING, FONTS, SHADOWS, PARTY_COLORS } from '../constants/them
 import { Pin, PinOff, ArrowUpDown, Filter, Columns } from 'lucide-react';
 import { useIsMobile } from '../utils/useIsMobile';
 
-const PINNED_STORAGE_KEY = 'prisma_politico_pinned';
+const PINNED_STORAGE_KEY = 'prisma_parlamentar_pinned';
 const PAGE_SIZE = 100;
 
 // Field labels for table headers
@@ -218,7 +218,7 @@ export default function Deputados() {
         let isMounted = true;
         async function load() {
             try {
-                const res = await fetch('http://localhost:8000/api/deputados/');
+                const res = await fetch('/api/deputados/');
                 const data = await res.json();
                 if (isMounted) {
                     setAllDeputies(data);
@@ -238,7 +238,7 @@ export default function Deputados() {
         let isMounted = true;
         async function fetchCategories() {
             try {
-                const res = await fetch('http://localhost:8000/api/despesas-categorias/');
+                const res = await fetch('/api/despesas-categorias/');
                 if (res.ok) {
                     const data = await res.json();
                     if (isMounted) {
@@ -258,7 +258,7 @@ export default function Deputados() {
         let isMounted = true;
         async function loadSpeeches() {
             try {
-                const res = await fetch('http://localhost:8000/api/deputados-discursos-totais/');
+                const res = await fetch('/api/deputados-discursos-totais/');
                 if (res.ok) {
                     const data = await res.json();
                     if (isMounted) {
@@ -282,7 +282,7 @@ export default function Deputados() {
         });
         async function loadExpenses() {
             try {
-                const res = await fetch(`http://localhost:8000/api/deputados-despesas-totais/?${query.toString()}`);
+                const res = await fetch(`/api/deputados-despesas-totais/?${query.toString()}`);
                 if (res.ok) {
                     const data = await res.json();
                     if (isMounted) {
@@ -305,7 +305,7 @@ export default function Deputados() {
         });
         async function loadProposals() {
             try {
-                const res = await fetch(`http://localhost:8000/api/deputados-proposicoes-totais/?${query.toString()}`);
+                const res = await fetch(`/api/deputados-proposicoes-totais/?${query.toString()}`);
                 if (res.ok) {
                     const data = await res.json();
                     if (isMounted) {
@@ -331,7 +331,7 @@ export default function Deputados() {
                 const category = field.replace('despesas__', '');
                 const query = new URLSearchParams({ categoria: category });
                 
-                fetch(`http://localhost:8000/api/deputados-despesas-totais/?${query.toString()}`)
+                fetch(`/api/deputados-despesas-totais/?${query.toString()}`)
                     .then(res => res.ok ? res.json() : null)
                     .then(data => {
                         if (data && isMounted) {
@@ -343,7 +343,7 @@ export default function Deputados() {
                 const type = field.replace('proposicoes__', '');
                 const query = new URLSearchParams({ tipo: type });
                 
-                fetch(`http://localhost:8000/api/deputados-proposicoes-totais/?${query.toString()}`)
+                fetch(`/api/deputados-proposicoes-totais/?${query.toString()}`)
                     .then(res => res.ok ? res.json() : null)
                     .then(data => {
                         if (data && isMounted) {

@@ -30,7 +30,7 @@ export default function MultiSelect({
     // Fetch expense categories on mount
     useEffect(() => {
         let isMounted = true;
-        fetch('http://localhost:8000/api/despesas-categorias/')
+        fetch('/api/despesas-categorias/')
             .then(res => res.ok ? res.json() : null)
             .then(data => {
                 if (data && isMounted) setExpenseCategories(data);

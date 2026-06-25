@@ -1,4 +1,4 @@
-# Prisma Político
+# Prisma Parlamentar
 
 ## Requisitos
 
@@ -43,7 +43,7 @@ Abra o navegador no endereço do Frontend apontado no terminal.
 
 ## ⚙️ Inicialização Completa e Atualização Incremental
 
-Para facilitar a implantação local e em servidores de produção, criamos scripts dedicados que gerenciam todo o ciclo de vida dos dados do Prisma Político.
+Para facilitar a implantação local e em servidores de produção, criamos scripts dedicados que gerenciam todo o ciclo de vida dos dados do Prisma Parlamentar.
 
 ### 🚀 1. Configuração Inicial do Projeto (`first_start.py`)
 

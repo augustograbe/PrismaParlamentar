@@ -13,7 +13,7 @@ def run_command(command):
 
 def main():
     print("==========================================")
-    print("   PRISMA POLÍTICO: CONFIGURAÇÃO INICIAL  ")
+    print("   PRISMA PARLAMENTAR: CONFIGURAÇÃO INICIAL  ")
     print("==========================================")
     
     # 1. Aplicar migrações
@@ -56,7 +56,7 @@ def main():
     
     print("\n==========================================")
     print("        CONFIGURAÇÃO CONCLUÍDA!           ")
-    print("   O Prisma Político está pronto para uso!")
+    print("   O Prisma Parlamentar está pronto para uso!")
     print("==========================================")
 
 if __name__ == '__main__':

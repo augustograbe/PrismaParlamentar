@@ -1,4 +1,4 @@
-// Prisma Político - Design Constants
+// Prisma Parlamentar - Design Constants
 // Todas as cores, fontes e espaçamentos do projeto
 
 export const COLORS = {

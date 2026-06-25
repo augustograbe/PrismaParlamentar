@@ -67,7 +67,7 @@ export default function FiltersPanel({
         let isMounted = true;
         async function fetchCategories() {
             try {
-                const res = await fetch('http://localhost:8000/api/despesas-categorias/');
+                const res = await fetch('/api/despesas-categorias/');
                 if (res.ok) {
                     const data = await res.json();
                     if (isMounted) {

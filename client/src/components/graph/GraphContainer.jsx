@@ -123,7 +123,7 @@ function getCommunityRequest(graphType, filters) {
     if (graphType === 'coautoria') {
         const coautoria = filters?.coautoria || { min: 1, max: 999 };
         return {
-            endpoint: 'http://localhost:8000/api/comunidades-coautoria/',
+            endpoint: '/api/comunidades-coautoria/',
             params: {
                 legislatura: '57',
                 min_coautoria: String(coautoria.min),
@@ -135,7 +135,7 @@ function getCommunityRequest(graphType, filters) {
 
     const voteSimilarity = filters?.voteSimilarity || { min: 80, max: 100 };
     return {
-        endpoint: 'http://localhost:8000/api/comunidades-votos/',
+        endpoint: '/api/comunidades-votos/',
         params: {
             legislatura: '57',
             min_similaridade: String(voteSimilarity.min),
@@ -233,7 +233,7 @@ const GraphContainer = memo(function GraphContainer({ filters, graphType = 'simi
         let isMounted = true;
         async function loadNodes() {
             try {
-                const depReq = await fetch('http://localhost:8000/api/deputados/');
+                const depReq = await fetch('/api/deputados/');
                 const deputados = await depReq.json();
 
                 if (!isMounted) return;
@@ -293,13 +293,13 @@ const GraphContainer = memo(function GraphContainer({ filters, graphType = 'simi
                 } else if (type === 'similaridade' && advancedFilters.polarizacaoRange) {
                     params.append('max_polarizacao', String(advancedFilters.polarizacaoRange.max / 100));
                 }
-                edgeUrl = `http://localhost:8000/api/arestas-backbone-filtrada/?${params.toString()}`;
+                edgeUrl = `/api/arestas-backbone-filtrada/?${params.toString()}`;
             } else {
                 const params = new URLSearchParams({
                     metodo: backboneConfig.method,
                     tipo_grafo: type === 'coautoria' ? 'coautoria' : 'similaridade',
                 });
-                edgeUrl = `http://localhost:8000/api/arestas-backbone/?${params.toString()}`;
+                edgeUrl = `/api/arestas-backbone/?${params.toString()}`;
             }
         } else if (advancedFilters) {
             // Usar endpoints filtrados quando filtros avançados estão ativos
@@ -310,22 +310,22 @@ const GraphContainer = memo(function GraphContainer({ filters, graphType = 'simi
                     max_autores: String(advancedFilters.coautoresRange?.max || 999),
                     tipos_proposicao: (advancedFilters.proposalTypes || ['PL']).join(','),
                 });
-                edgeUrl = `http://localhost:8000/api/arestas-coautoria-filtrada/?${params.toString()}`;
+                edgeUrl = `/api/arestas-coautoria-filtrada/?${params.toString()}`;
             } else if (type === 'similaridade' && advancedFilters.polarizacaoRange) {
                 const params = new URLSearchParams({
                     legislatura: '57',
                     max_polarizacao: String(advancedFilters.polarizacaoRange.max / 100), // converter % para fração
                 });
-                edgeUrl = `http://localhost:8000/api/arestas-similaridade-filtrada/?${params.toString()}`;
+                edgeUrl = `/api/arestas-similaridade-filtrada/?${params.toString()}`;
             } else {
                 edgeUrl = type === 'coautoria'
-                    ? 'http://localhost:8000/api/arestas-coautoria/'
-                    : 'http://localhost:8000/api/arestas/';
+                    ? '/api/arestas-coautoria/'
+                    : '/api/arestas/';
             }
         } else {
             edgeUrl = type === 'coautoria'
-                ? 'http://localhost:8000/api/arestas-coautoria/'
-                : 'http://localhost:8000/api/arestas/';
+                ? '/api/arestas-coautoria/'
+                : '/api/arestas/';
         }
 
         try {
@@ -482,7 +482,7 @@ const GraphContainer = memo(function GraphContainer({ filters, graphType = 'simi
 
         async function loadExpenses() {
             try {
-                const res = await fetch(`http://localhost:8000/api/deputados-despesas-totais/?${query.toString()}`);
+                const res = await fetch(`/api/deputados-despesas-totais/?${query.toString()}`);
                 if (res.ok) {
                     const data = await res.json();
                     if (isMounted) {
@@ -508,7 +508,7 @@ const GraphContainer = memo(function GraphContainer({ filters, graphType = 'simi
 
         async function loadSpeeches() {
             try {
-                const res = await fetch('http://localhost:8000/api/deputados-discursos-totais/');
+                const res = await fetch('/api/deputados-discursos-totais/');
                 if (res.ok) {
                     const data = await res.json();
                     if (isMounted) {
@@ -536,7 +536,7 @@ const GraphContainer = memo(function GraphContainer({ filters, graphType = 'simi
 
         async function loadProposals() {
             try {
-                const res = await fetch(`http://localhost:8000/api/deputados-proposicoes-totais/?${query.toString()}`);
+                const res = await fetch(`/api/deputados-proposicoes-totais/?${query.toString()}`);
                 if (res.ok) {
                     const data = await res.json();
                     if (isMounted) {

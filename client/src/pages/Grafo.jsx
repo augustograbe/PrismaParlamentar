@@ -15,7 +15,7 @@ import ExportPanel from '../components/ExportPanel';
 import { COLORS, SPACING, FONTS, PARTY_COLORS, STATE_COLORS, SEX_COLORS, SHADOWS } from '../constants/theme';
 import { useIsMobile } from '../utils/useIsMobile';
 
-const PINNED_STORAGE_KEY = 'prisma_politico_pinned';
+const PINNED_STORAGE_KEY = 'prisma_parlamentar_pinned';
 
 const SEX_LABELS = { M: 'Masculino', F: 'Feminino', O: 'Outro' };
 

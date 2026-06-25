@@ -51,8 +51,9 @@ export default function TopBar({ deputyList = [], onSelectDeputy, onSelectProfil
     };
 
     const titleStyle = {
+        fontFamily: '"Bahnschrift SemiBold SemiCondensed", "Bahnschrift", sans-serif',
         fontSize: isMobile ? '16px' : FONTS.sizeTitle,
-        fontWeight: FONTS.weightMedium,
+        fontWeight: 600,
         color: COLORS.textDark,
         display: isMobile ? (searchActive ? 'none' : 'inline') : 'inline',
     };
@@ -146,9 +147,9 @@ export default function TopBar({ deputyList = [], onSelectDeputy, onSelectProfil
             {/* Left: Logo + Title */}
             <div style={leftStyle}>
                 <div style={logoStyle}>
-                    <img src={logo} alt="Prisma Político logo" style={{ width: isMobile ? '40px' : '56px', height: isMobile ? '32px' : '44px', objectFit: 'contain' }} />
+                    <img src={logo} alt="Prisma Parlamentar logo" style={{ width: isMobile ? '40px' : '56px', height: isMobile ? '32px' : '44px', objectFit: 'contain' }} />
                 </div>
-                <span style={titleStyle}>Prisma Político</span>
+                <span style={titleStyle}>Prisma Parlamentar</span>
             </div>
 
             {/* Center: Search bar */}

@@ -629,7 +629,7 @@ export default function DeputyExpenses({ deputyId }) {
                                         position: 'relative',
                                         borderRadius: '6px',
                                         border: `1px solid ${COLORS.borderLight}`,
-                                        backgroundColor: '#ffffff',
+                                        backgroundColor: COLORS.white,
                                         display: 'flex',
                                         flexDirection: 'column',
                                         boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
@@ -670,7 +670,7 @@ export default function DeputyExpenses({ deputyId }) {
                                             zIndex: 2,
                                         }}
                                         onMouseEnter={(e) => {
-                                            if (!isCategoryExpanded) e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.01)';
+                                            if (!isCategoryExpanded) e.currentTarget.style.backgroundColor = COLORS.backgroundHover;
                                         }}
                                         onMouseLeave={(e) => {
                                             if (!isCategoryExpanded) e.currentTarget.style.backgroundColor = 'transparent';
@@ -718,7 +718,7 @@ export default function DeputyExpenses({ deputyId }) {
                                             flexDirection: 'column',
                                             gap: '8px',
                                             borderTop: `1px solid ${COLORS.borderLight}`,
-                                            backgroundColor: '#f9fafb',
+                                            backgroundColor: COLORS.backgroundAlt,
                                             zIndex: 2,
                                         }}>
                                             {item.empresas && item.empresas.length > 0 ? (
@@ -731,7 +731,7 @@ export default function DeputyExpenses({ deputyId }) {
                                                             style={{
                                                                 borderRadius: '6px',
                                                                 border: `1px solid ${COLORS.borderLight}`,
-                                                                backgroundColor: '#ffffff',
+                                                                backgroundColor: COLORS.white,
                                                                 overflow: 'hidden',
                                                                 display: 'flex',
                                                                 flexDirection: 'column',
@@ -755,7 +755,7 @@ export default function DeputyExpenses({ deputyId }) {
                                                                     transition: 'background-color 0.2s',
                                                                 }}
                                                                 onMouseEnter={(e) => {
-                                                                    if (!isCompanyExpanded) e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.02)';
+                                                                    if (!isCompanyExpanded) e.currentTarget.style.backgroundColor = COLORS.backgroundHover;
                                                                 }}
                                                                 onMouseLeave={(e) => {
                                                                     if (!isCompanyExpanded) e.currentTarget.style.backgroundColor = 'transparent';
@@ -787,7 +787,7 @@ export default function DeputyExpenses({ deputyId }) {
                                                                 <div style={{
                                                                     padding: '8px 12px 12px',
                                                                     borderTop: `1px solid ${COLORS.borderLight}`,
-                                                                    backgroundColor: '#ffffff',
+                                                                    backgroundColor: COLORS.white,
                                                                     display: 'flex',
                                                                     flexDirection: 'column',
                                                                     gap: '8px'
@@ -830,7 +830,7 @@ export default function DeputyExpenses({ deputyId }) {
                                                                                     fontSize: '12px',
                                                                                     color: COLORS.textDark,
                                                                                     padding: '4px 0',
-                                                                                    borderBottom: despIdx < emp.despesas.length - 1 ? '1px dashed #f3f4f6' : 'none'
+                                                                                    borderBottom: despIdx < emp.despesas.length - 1 ? `1px dashed ${COLORS.borderLight}` : 'none'
                                                                                 }}
                                                                             >
                                                                                 <span style={{ color: COLORS.textMedium }}>{formattedDate}</span>

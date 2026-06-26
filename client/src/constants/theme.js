@@ -3,9 +3,9 @@
 
 export const COLORS = {
     // Background
-    backgroundDark: '#3d3d3d',
-    backgroundLight: '#f5f5f5',
-    white: '#ffffff',
+    backgroundDark: 'var(--color-background-dark)',
+    backgroundLight: 'var(--color-background-light)',
+    white: 'var(--color-white)',
 
     // Primary
     orange: '#e8850c',
@@ -13,18 +13,18 @@ export const COLORS = {
     orangeLight: '#f5a623',
 
     // Text
-    textDark: '#2d2d2d',
-    textMedium: '#555555',
-    textLight: '#888888',
+    textDark: 'var(--color-text-dark)',
+    textMedium: 'var(--color-text-medium)',
+    textLight: 'var(--color-text-light)',
     textWhite: '#ffffff',
 
     // Borders
-    borderLight: '#e0e0e0',
-    borderMedium: '#cccccc',
+    borderLight: 'var(--color-border-light)',
+    borderMedium: 'var(--color-border-medium)',
 
     // Frame
-    frameBg: '#ffffff',
-    frameShadow: 'rgba(0, 0, 0, 0.15)',
+    frameBg: 'var(--color-frame-bg)',
+    frameShadow: 'var(--color-frame-shadow)',
 
     // Deputy card
     deputyHeaderGreen: '#7ab648',
@@ -32,12 +32,16 @@ export const COLORS = {
     partyBadgeText: '#ffffff',
 
     // Range slider
-    sliderTrack: '#d9d9d9',
+    sliderTrack: 'var(--color-slider-track)',
     sliderFilled: '#e8850c',
 
     // Checkbox
     checkboxChecked: '#e8850c',
-    checkboxUnchecked: '#cccccc',
+    checkboxUnchecked: 'var(--color-checkbox-unchecked)',
+
+    // Table / List helper backgrounds
+    backgroundAlt: 'var(--color-background-alt)',
+    backgroundHover: 'var(--color-background-hover)',
 
     // Graph
     nodeFade: '#cccccc',
@@ -148,7 +152,7 @@ export const SPACING = {
 };
 
 export const SHADOWS = {
-    frame: '0 2px 12px rgba(0, 0, 0, 0.15)',
-    frameHover: '0 4px 20px rgba(0, 0, 0, 0.2)',
-    button: '0 1px 4px rgba(0, 0, 0, 0.1)',
+    frame: 'var(--shadow-frame)',
+    frameHover: 'var(--shadow-frame-hover)',
+    button: 'var(--shadow-button)',
 };

@@ -4,10 +4,15 @@ import TopBar from '../components/layout/TopBar';
 import DeputyProfile from '../components/DeputyProfile';
 import { COLORS, SPACING, FONTS, SHADOWS } from '../constants/theme';
 import { useIsMobile } from '../utils/useIsMobile';
-import logoGrande from '../assets/logo_sobre.png';
-import logoUfrj from '../assets/ufrj_logo.png';
+import logoSobrePositivo from '../assets/logo_sobre_positivo.png';
+import logoSobreNegativo from '../assets/logo_sobre_negativo.png';
+import logoUfrjPositivo from '../assets/ufrj_logo.png';
+import logoUfrjNegativo from '../assets/ufrj_logo_negativo.png';
+import logoBcc from '../assets/logo_bcc.png';
 
-export default function Sobre() {
+export default function Sobre({ theme, toggleTheme }) {
+    const logoGrande = theme === 'dark' ? logoSobreNegativo : logoSobrePositivo;
+    const ufrjLogo = theme === 'dark' ? logoUfrjNegativo : logoUfrjPositivo;
     const navigate = useNavigate();
     const isMobile = useIsMobile();
     const [deputyList, setDeputyList] = useState([]);
@@ -175,9 +180,24 @@ export default function Sobre() {
     };
 
     const ufrjLogoStyle = {
-        maxWidth: isMobile ? '160px' : '220px',
+        maxWidth: isMobile ? '140px' : '180px',
         width: '100%',
         height: 'auto',
+    };
+
+    const bccLogoStyle = {
+        maxWidth: isMobile ? '180px' : '220px',
+        width: '100%',
+        height: 'auto',
+    };
+
+    const footerLogosStyle = {
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: isMobile ? '24px' : '40px',
+        width: '100%',
     };
 
     return (
@@ -188,6 +208,8 @@ export default function Sobre() {
                 onSelectDeputy={handleSearchSelectDeputy}
                 onSelectProfile={handleSearchSelectProfile}
                 activePage="sobre"
+                theme={theme}
+                toggleTheme={toggleTheme}
             />
 
             {/* Container Principal */}
@@ -209,6 +231,9 @@ export default function Sobre() {
                         </p>
                         <p>
                             Ao integrar métodos científicos de análise de redes com recursos avançados de visualização de dados, busca-se reduzir a barreira técnica existente no acesso aos dados legislativos, promovendo maior transparência, acessibilidade e compreensão do funcionamento da Câmara dos Deputados.
+                        </p>
+                        <p>
+                            Os dados exibidos na plataforma são obtidos diretamente a partir do portal de <strong><a href="https://dadosabertos.camara.leg.br/" target="_blank" rel="noopener noreferrer" style={{ color: COLORS.orange, textDecoration: 'underline', fontWeight: FONTS.weightMedium }} onMouseEnter={(e) => e.target.style.color = COLORS.orangeHover} onMouseLeave={(e) => e.target.style.color = COLORS.orange}>Dados Abertos da Câmara dos Deputados</a></strong>, contando com uma rotina de atualização diária para garantir informações sempre recentes das atividades legislativas.
                         </p>
                     </div>
 
@@ -294,7 +319,10 @@ export default function Sobre() {
 
                     {/* Rodapé Institucional */}
                     <div style={institutionalStyle}>
-                        <img src={logoUfrj} alt="Logo UFRJ" style={ufrjLogoStyle} />
+                        <div style={footerLogosStyle}>
+                            <img src={ufrjLogo} alt="Logo UFRJ" style={ufrjLogoStyle} />
+                            <img src={logoBcc} alt="Logo BCC UFRJ" style={bccLogoStyle} />
+                        </div>
                     </div>
 
                 </div>

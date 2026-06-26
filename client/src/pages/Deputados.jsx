@@ -110,7 +110,7 @@ function deserializeDeputadosParams(searchParams) {
     };
 }
 
-export default function Deputados() {
+export default function Deputados({ theme, toggleTheme }) {
     const [searchParams, setSearchParams] = useSearchParams();
     const initialParams = useMemo(() => deserializeDeputadosParams(searchParams), [searchParams]);
 
@@ -556,7 +556,7 @@ export default function Deputados() {
     const thStyle = {
         position: 'sticky',
         top: 0,
-        backgroundColor: '#fafafa',
+        backgroundColor: COLORS.backgroundAlt,
         padding: `${SPACING.md} ${SPACING.lg}`,
         textAlign: 'left',
         fontWeight: FONTS.weightSemibold,
@@ -568,7 +568,7 @@ export default function Deputados() {
     };
 
     const getTdStyle = (rowIdx, isPinned, isHighlighted, isHovered) => {
-        let bgColor = rowIdx % 2 === 0 ? COLORS.white : '#fafafa';
+        let bgColor = rowIdx % 2 === 0 ? COLORS.white : COLORS.backgroundAlt;
         if (isPinned) {
             bgColor = 'rgba(232, 133, 12, 0.08)'; // Light orange
         }
@@ -576,7 +576,7 @@ export default function Deputados() {
             bgColor = 'rgba(232, 133, 12, 0.35)'; // Strong orange
         }
         if (isHovered) {
-            bgColor = '#eef4ff'; // Normal hover color
+            bgColor = COLORS.backgroundHover; // Dynamic hover color
         }
         return {
             padding: `${SPACING.sm} ${SPACING.lg}`,
@@ -741,6 +741,8 @@ export default function Deputados() {
                 onSelectDeputy={handleSearchSelectDeputyList}
                 onSelectProfile={handleSearchSelectProfile}
                 activePage="lista"
+                theme={theme}
+                toggleTheme={toggleTheme}
             />
 
             {/* Table area */}

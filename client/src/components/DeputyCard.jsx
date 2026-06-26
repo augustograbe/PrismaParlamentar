@@ -267,7 +267,7 @@ export default function DeputyCard({
     const progressTextStyle = {
         fontSize: '10px',
         fontWeight: FONTS.weightSemibold,
-        color: COLORS.white,
+        color: COLORS.textWhite,
         lineHeight: 1,
     };
 
@@ -527,7 +527,7 @@ export default function DeputyCard({
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <span style={{
                                     backgroundColor: COLORS.orange,
-                                    color: COLORS.white,
+                                    color: COLORS.textWhite,
                                     padding: '1px 6px',
                                     borderRadius: '4px',
                                     fontSize: '11px',

@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { COLORS, SPACING, FONTS } from '../../constants/theme';
 import SearchBar from '../SearchBar';
-import logo from '../../assets/logo.png';
+import logoPositivo from '../../assets/logo.png';
+import logoNegativo from '../../assets/logo_negativo.png';
 import { useIsMobile } from '../../utils/useIsMobile';
 
 /**
@@ -13,7 +14,8 @@ import { useIsMobile } from '../../utils/useIsMobile';
  * - deputyList: array de deputados para autocomplete na SearchBar
  * - onSelectDeputy: callback quando um deputado é selecionado na pesquisa
  */
-export default function TopBar({ deputyList = [], onSelectDeputy, onSelectProfile, activePage = 'grafos' }) {
+export default function TopBar({ deputyList = [], onSelectDeputy, onSelectProfile, activePage = 'grafos', theme = 'light', toggleTheme }) {
+    const activeLogo = theme === 'dark' ? logoNegativo : logoPositivo;
     const navigate = useNavigate();
     const isMobile = useIsMobile();
     const [searchActive, setSearchActive] = useState(false);
@@ -147,7 +149,7 @@ export default function TopBar({ deputyList = [], onSelectDeputy, onSelectProfil
             {/* Left: Logo + Title */}
             <div style={leftStyle}>
                 <div style={logoStyle}>
-                    <img src={logo} alt="Prisma Parlamentar logo" style={{ width: isMobile ? '40px' : '56px', height: isMobile ? '32px' : '44px', objectFit: 'contain' }} />
+                    <img src={activeLogo} alt="Prisma Parlamentar logo" style={{ width: isMobile ? '40px' : '56px', height: isMobile ? '32px' : '44px', objectFit: 'contain' }} />
                 </div>
                 <span style={titleStyle}>Prisma Parlamentar</span>
             </div>
@@ -195,11 +197,13 @@ export default function TopBar({ deputyList = [], onSelectDeputy, onSelectProfil
                         </button>
                     );
                 })}
+                <ThemeSwitch theme={theme} toggleTheme={toggleTheme} />
             </div>
 
             {/* Mobile-only Hamburger trigger */}
             {isMobile && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: SPACING.md, flexShrink: 0 }}>
+                    <ThemeSwitch theme={theme} toggleTheme={toggleTheme} />
                     {/* Hamburger button */}
                     <button
                         onClick={() => setMenuOpen(!menuOpen)}
@@ -261,5 +265,66 @@ export default function TopBar({ deputyList = [], onSelectDeputy, onSelectProfil
                 </div>
             )}
         </div>
+    );
+}
+
+function ThemeSwitch({ theme, toggleTheme }) {
+    const isDark = theme === 'dark';
+
+    const trackStyle = {
+        width: '46px',
+        height: '24px',
+        borderRadius: '12px',
+        backgroundColor: isDark ? '#151517' : '#eef2f3',
+        border: isDark ? '1.5px solid #2d2d2d' : '1.5px solid transparent',
+        position: 'relative',
+        cursor: 'pointer',
+        transition: 'all 0.3s ease',
+        display: 'flex',
+        alignItems: 'center',
+        boxSizing: 'border-box',
+        padding: 0,
+        outline: 'none',
+        flexShrink: 0,
+    };
+
+    const thumbStyle = {
+        width: '16px',
+        height: '16px',
+        position: 'absolute',
+        left: isDark ? '25px' : '3px',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+    };
+
+    return (
+        <button
+            onClick={toggleTheme}
+            style={trackStyle}
+            title={isDark ? "Ativar modo claro" : "Ativar modo escuro"}
+            aria-label="Alternar tema"
+        >
+            <div style={thumbStyle}>
+                {isDark ? (
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill={COLORS.orange}>
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                    </svg>
+                ) : (
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke={COLORS.orange} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="5" fill={COLORS.orange} />
+                        <line x1="12" y1="1" x2="12" y2="3" />
+                        <line x1="12" y1="21" x2="12" y2="23" />
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                        <line x1="1" y1="12" x2="3" y2="12" />
+                        <line x1="21" y1="12" x2="23" y2="12" />
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                    </svg>
+                )}
+            </div>
+        </button>
     );
 }

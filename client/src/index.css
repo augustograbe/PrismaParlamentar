@@ -1,6 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --color-background-dark: #3d3d3d;
+  --color-background-light: #f5f5f5;
+  --color-white: #ffffff;
+  
+  --color-text-dark: #2d2d2d;
+  --color-text-medium: #555555;
+  --color-text-light: #888888;
+  
+  --color-border-light: #e0e0e0;
+  --color-border-medium: #cccccc;
+  
+  --color-frame-bg: #ffffff;
+  --color-frame-shadow: rgba(0, 0, 0, 0.15);
+  
+  --color-slider-track: #d9d9d9;
+  --color-checkbox-unchecked: #cccccc;
+  
+  --color-node-fade: #cccccc;
+  --color-edge-fade: #eeeeee;
+  --color-edge-default: #cccccc;
+  
+  --shadow-frame: 0 2px 12px rgba(0, 0, 0, 0.15);
+  --shadow-frame-hover: 0 4px 20px rgba(0, 0, 0, 0.2);
+  --shadow-button: 0 1px 4px rgba(0, 0, 0, 0.1);
+  
+  --color-background-alt: #fafafa;
+  --color-background-hover: #eef4ff;
+  
+  --scrollbar-thumb: #888;
+  --scrollbar-thumb-hover: #666;
+}
+
+html[data-theme="dark"] {
+  --color-background-dark: #0b0c10;
+  --color-background-light: #0b0c10;
+  --color-white: #1e1e1e;
+  
+  --color-text-dark: #f5f5f5;
+  --color-text-medium: #cccccc;
+  --color-text-light: #aaaaaa;
+  
+  --color-border-light: #2d2d2d;
+  --color-border-medium: #444444;
+  
+  --color-frame-bg: #1e1e1e;
+  --color-frame-shadow: rgba(0, 0, 0, 0.5);
+  
+  --color-slider-track: #3d3d3d;
+  --color-checkbox-unchecked: #444444;
+  
+  --color-node-fade: #333333;
+  --color-edge-fade: #222222;
+  --color-edge-default: #444444;
+  
+  --shadow-frame: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --shadow-frame-hover: 0 6px 24px rgba(0, 0, 0, 0.6);
+  --shadow-button: 0 2px 6px rgba(0, 0, 0, 0.4);
+  
+  --color-background-alt: #242428;
+  --color-background-hover: #2b2c36;
+  
+  --scrollbar-thumb: #555;
+  --scrollbar-thumb-hover: #777;
+}
 
 * {
   margin: 0;
@@ -10,8 +78,8 @@
 
 body {
   font-family: 'Inter', 'Segoe UI', sans-serif;
-  background-color: #3d3d3d;
-  color: #2d2d2d;
+  background-color: var(--color-background-light) !important;
+  color: var(--color-text-dark);
   overflow: hidden;
   width: 100vw;
   height: 100vh;
@@ -25,6 +93,7 @@ body {
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -32,12 +101,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #888;
+  background: var(--scrollbar-thumb);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #666;
+  background: var(--scrollbar-thumb-hover);
 }
 
 /* Sigma graph cursor */
@@ -48,4 +117,27 @@ body {
 .react-sigma {
   width: 100%;
   height: 100%;
+  background-color: transparent !important;
+}
+
+.sigma-container,
+.sigma-mouse,
+.react-sigma canvas {
+  background-color: transparent !important;
+}
+
+/* Smooth theme transitions globally */
+body,
+body * {
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* Disable transition for Sigma graph canvas and containers to prevent lagging or rendering issues */
+.react-sigma,
+.react-sigma *,
+.sigma-container,
+.sigma-container *,
+.sigma-mouse,
+.react-sigma canvas {
+  transition: none !important;
 }

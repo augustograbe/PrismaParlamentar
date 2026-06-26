@@ -407,7 +407,7 @@ export default function SearchBar({
                                         }}
                                         onMouseEnter={(e) => {
                                             e.currentTarget.style.backgroundColor = COLORS.orange;
-                                            e.currentTarget.style.color = COLORS.white;
+                                            e.currentTarget.style.color = COLORS.textWhite;
                                         }}
                                         onMouseLeave={(e) => {
                                             e.currentTarget.style.backgroundColor = 'transparent';

@@ -50,8 +50,8 @@ export default function Tooltip({ text, children, isWarning = false }) {
                 onMouseEnter={handleMouseEnter}
                 className={`w-[16px] h-[16px] rounded-full flex items-center justify-center text-[10px] font-bold transition-colors cursor-help ${
                     isWarning 
-                        ? "bg-[#fff3cd] text-[#856404] hover:bg-[#856404] hover:text-white" 
-                        : "bg-[#f2f2f2] text-[#aaa] hover:bg-[#e8850c] hover:text-white"
+                        ? "bg-[#fff3cd] text-[#856404] hover:bg-[#856404] hover:text-white dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-600 dark:hover:text-white" 
+                        : "bg-[#f2f2f2] text-[#aaa] hover:bg-[#e8850c] hover:text-white dark:bg-[#2b2c35] dark:text-gray-400 dark:hover:bg-[#e8850c] dark:hover:text-white"
                 }`}
             >
                 {children || '?'}
@@ -61,7 +61,7 @@ export default function Tooltip({ text, children, isWarning = false }) {
             {/* Conteúdo do Tooltip em Portal para não ser cortado pelo Frame */}
             {visible && createPortal(
                 <div 
-                    className="fixed z-[9999] p-2.5 bg-[#3d3d3d] text-white text-xs rounded-md shadow-lg text-center font-normal whitespace-normal leading-relaxed w-64 pointer-events-none"
+                    className="fixed z-[9999] p-2.5 bg-[#3d3d3d] text-white text-xs rounded-md shadow-lg text-center font-normal whitespace-normal leading-relaxed w-64 pointer-events-none dark:bg-[#18181c] dark:text-[#f5f5f5] border border-transparent dark:border-[#2d2d35]"
                     style={{
                         top: coords.top,
                         left: coords.left,
@@ -71,7 +71,7 @@ export default function Tooltip({ text, children, isWarning = false }) {
                     {text}
                     {/* Seta do tooltip */}
                     <div 
-                        className="absolute top-full border-[5px] border-transparent border-t-[#3d3d3d]" 
+                        className="absolute top-full border-[5px] border-transparent border-t-[#3d3d3d] dark:border-t-[#18181c]" 
                         style={{ left: coords.arrowLeft, transform: 'translateX(-50%)' }}
                     />
                 </div>,

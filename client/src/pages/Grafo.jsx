@@ -202,7 +202,7 @@ function deserializeGrafoFilters(searchParams) {
     return filters;
 }
 
-export default function Grafo() {
+export default function Grafo({ theme, toggleTheme }) {
     const [searchParams, setSearchParams] = useSearchParams();
     const isMobile = useIsMobile();
     
@@ -740,6 +740,7 @@ export default function Grafo() {
         <div style={pageStyle}>
             {/* Grafo no fundo - ocupa toda a tela */}
             <GraphContainer
+                theme={theme}
                 filters={filters}
                 graphType={graphType}
                 selectedNode={selectedDeputy ? String(selectedDeputy.nodeId || selectedDeputy.id) : null}
@@ -1054,7 +1055,7 @@ export default function Grafo() {
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center',
-                            backgroundColor: '#fafafa',
+                            backgroundColor: COLORS.backgroundAlt,
                             gap: SPACING.md,
                             flexWrap: 'wrap',
                         }}>
@@ -1144,6 +1145,8 @@ export default function Grafo() {
                 onSelectDeputy={handleSearchSelectDeputy}
                 onSelectProfile={handleSearchSelectProfile}
                 activePage="grafos"
+                theme={theme}
+                toggleTheme={toggleTheme}
             />
 
             {/* Card de deputado - canto superior esquerdo (aparece ao clicar num vértice) */}

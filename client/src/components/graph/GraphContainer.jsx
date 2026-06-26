@@ -210,7 +210,7 @@ function getNodeColor(deputy, separateBy, graphType, dynamicCommunityMap = null,
  * - selectedNode: id do nó selecionado (string | null)
  * - onNodeClick: callback quando um nó é clicado
  */
-const GraphContainer = memo(function GraphContainer({ filters, graphType = 'similaridade', selectedNode, selectedDeputy, onNodeClick, onDeputiesLoaded, onMaxCoautoriaLoaded, onVisibleStatsChanged, pinnedIds = [], highlightPinned = true, hoveredLegendGroup = null, hoveredBarGroup = null, hoveredConnectionNode = null, recalcKey = 0, onLayoutReady, onSigmaReady }) {
+const GraphContainer = memo(function GraphContainer({ theme = 'light', filters, graphType = 'similaridade', selectedNode, selectedDeputy, onNodeClick, onDeputiesLoaded, onMaxCoautoriaLoaded, onVisibleStatsChanged, pinnedIds = [], highlightPinned = true, hoveredLegendGroup = null, hoveredBarGroup = null, hoveredConnectionNode = null, recalcKey = 0, onLayoutReady, onSigmaReady }) {
     const graph = useMemo(() => new Graph(), []);
     const sigmaRef = useRef(null);
     const [dataLoaded, setDataLoaded] = useState(false);
@@ -1026,13 +1026,73 @@ const GraphContainer = memo(function GraphContainer({ filters, graphType = 'simi
             labelGridCellSize: 60,
             labelRenderedSizeThreshold: 10,
             labelFont: "'Inter', sans-serif",
-            labelColor: { color: COLORS.textDark },
+            labelColor: { color: '#2d2d2d' },
             defaultEdgeType: 'line',
             renderEdgeLabels: false,
             zoomingRatio: 1.15,
             zIndex: true,
             minCameraRatio: 0.2,
             maxCameraRatio: 5,
+            defaultDrawNodeHover: (context, data, settings) => {
+                const size = data.size;
+                const font = settings.labelFont;
+                const weight = settings.labelWeight || 'normal';
+                const fontSize = settings.labelSize || 12;
+
+                context.font = `${weight} ${fontSize}px ${font}`;
+                const textWidth = context.measureText(data.label).width;
+
+                const x = data.x;
+                const y = data.y;
+
+                // Box dimensions
+                const boxWidth = textWidth + 10;
+                const boxHeight = fontSize + 8;
+                const boxX = x + size + 3;
+                const boxY = y - boxHeight / 2;
+
+                const isDark = document.documentElement.classList.contains('dark') || 
+                               document.documentElement.getAttribute('data-theme') === 'dark';
+
+                // 1. Draw node hover disc/shadow
+                context.beginPath();
+                context.arc(x, y, size + 4, 0, Math.PI * 2);
+                context.fillStyle = isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)';
+                context.fill();
+
+                // 2. Draw label background box
+                context.beginPath();
+                if (typeof context.roundRect === 'function') {
+                    context.roundRect(boxX, boxY, boxWidth, boxHeight, 4);
+                } else {
+                    context.rect(boxX, boxY, boxWidth, boxHeight);
+                }
+                context.fillStyle = isDark ? '#1a1b20' : '#ffffff';
+                context.shadowColor = 'rgba(0, 0, 0, 0.25)';
+                context.shadowBlur = 6;
+                context.shadowOffsetX = 0;
+                context.shadowOffsetY = 2;
+                context.fill();
+                
+                // Reset shadow so it doesn't affect subsequent drawings
+                context.shadowColor = 'transparent';
+                context.shadowBlur = 0;
+
+                // 3. Draw label border
+                context.strokeStyle = isDark ? '#3d3d3d' : '#e0e0e0';
+                context.lineWidth = 1;
+                context.stroke();
+
+                // 4. Draw node itself (so it sits on top of the hover disc)
+                context.beginPath();
+                context.arc(x, y, size, 0, Math.PI * 2);
+                context.fillStyle = data.color;
+                context.fill();
+
+                // 5. Draw label text
+                context.fillStyle = isDark ? '#ffffff' : '#2d2d2d';
+                context.fillText(data.label, boxX + 5, y + fontSize / 3);
+            },
             drawLabel: (context, data, settings) => {
                 if (!data.label) return;
 
@@ -1256,7 +1316,7 @@ const GraphContainer = memo(function GraphContainer({ filters, graphType = 'simi
                 >
                     <SigmaInstanceListener onSigmaReady={onSigmaReady} />
                     <GraphEventsController setSelectedNode={handleNodeClick} />
-                    <GraphSettingsController selectedNode={selectedNode} pinnedIds={pinnedIds} highlightPinned={highlightPinned} hoveredLegendGroup={hoveredLegendGroup} hoveredBarGroup={hoveredBarGroup} hoveredConnectionNode={hoveredConnectionNode} separateBy={filters.separateBy} graphType={graphType} dynamicCommunityMap={activeDynamicCommunityMap} />
+                    <GraphSettingsController theme={theme} selectedNode={selectedNode} pinnedIds={pinnedIds} highlightPinned={highlightPinned} hoveredLegendGroup={hoveredLegendGroup} hoveredBarGroup={hoveredBarGroup} hoveredConnectionNode={hoveredConnectionNode} separateBy={filters.separateBy} graphType={graphType} dynamicCommunityMap={activeDynamicCommunityMap} />
                 </SigmaContainer>
             )}
             {showLoading && (

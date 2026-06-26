@@ -207,7 +207,7 @@ export default function MultiSelect({
                                 style={{ ...dropdownItemStyle, position: 'relative' }}
                                 onClick={() => !hasSubmenu && handleAdd(opt.value)}
                                 onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = '#f5f5f5';
+                                    e.currentTarget.style.backgroundColor = COLORS.backgroundHover;
                                     setHoveredItem(opt.value);
                                 }}
                                 onMouseLeave={(e) => {
@@ -243,7 +243,7 @@ export default function MultiSelect({
                                                 e.stopPropagation();
                                                 handleAdd('despesas');
                                             }}
-                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.backgroundHover}
                                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                         >
                                             Todas
@@ -256,7 +256,7 @@ export default function MultiSelect({
                                                     e.stopPropagation();
                                                     handleAdd('despesas__' + cat);
                                                 }}
-                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.backgroundHover}
                                                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                             >
                                                 {cat}
@@ -286,7 +286,7 @@ export default function MultiSelect({
                                                     e.stopPropagation();
                                                     handleAdd('proposicoes__' + type);
                                                 }}
-                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.backgroundHover}
                                                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                             >
                                                 {type}

@@ -102,7 +102,7 @@ export default function PinnedPanel({
                         <div
                             key={dep.id}
                             style={itemStyle}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.backgroundHover}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                         >
                             <div 

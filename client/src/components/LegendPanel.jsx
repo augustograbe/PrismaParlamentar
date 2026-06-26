@@ -104,7 +104,7 @@ export default function LegendPanel({
                                 key={item.key}
                                 style={itemStyle}
                                 onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = '#f5f5f5';
+                                    e.currentTarget.style.backgroundColor = COLORS.backgroundHover;
                                     if (onHoverGroup) onHoverGroup(item.key);
                                 }}
                                 onMouseLeave={(e) => {

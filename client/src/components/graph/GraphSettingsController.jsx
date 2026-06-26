@@ -1,9 +1,6 @@
 import { useSigma } from '@react-sigma/core';
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import { COLORS, PARTY_COLORS, STATE_COLORS, SEX_COLORS } from '../../constants/theme';
-
-const NODE_FADE_COLOR = COLORS.nodeFade;
-const EDGE_FADE_COLOR = COLORS.edgeFade;
 
 /**
  * Converte cor hex para rgba com opacidade.
@@ -75,11 +72,79 @@ function getGroupColor(key, separateBy) {
  * Utiliza o nodeReducer para passar o atributo 'isPinned' que é consumido
  * pelo drawLabel customizado no GraphContainer.
  */
-export default function GraphSettingsController({ selectedNode, pinnedIds = [], highlightPinned = true, hoveredLegendGroup = null, hoveredBarGroup = null, hoveredConnectionNode = null, separateBy = 'partido', graphType = 'similaridade', dynamicCommunityMap = null }) {
+export default function GraphSettingsController({ theme = 'light', selectedNode, pinnedIds = [], highlightPinned = true, hoveredLegendGroup = null, hoveredBarGroup = null, hoveredConnectionNode = null, separateBy = 'partido', graphType = 'similaridade', dynamicCommunityMap = null }) {
     const sigma = useSigma();
     const graph = sigma.getGraph();
 
-    useEffect(() => {
+    useLayoutEffect(() => {
+        const NODE_FADE_COLOR = theme === 'dark' ? '#333333' : '#cccccc';
+        const EDGE_FADE_COLOR = theme === 'dark' ? '#222222' : '#eeeeee';
+
+        sigma.setSetting('labelColor', { color: theme === 'dark' ? '#f5f5f5' : '#2d2d2d' });
+
+        const drawHoverFn = (context, data, settings) => {
+            const size = data.size;
+            const font = settings.labelFont;
+            const weight = settings.labelWeight || 'normal';
+            const fontSize = settings.labelSize || 12;
+
+            context.font = `${weight} ${fontSize}px ${font}`;
+            const textWidth = context.measureText(data.label).width;
+
+            const x = data.x;
+            const y = data.y;
+
+            // Box dimensions
+            const boxWidth = textWidth + 10;
+            const boxHeight = fontSize + 8;
+            const boxX = x + size + 3;
+            const boxY = y - boxHeight / 2;
+
+            const isDark = theme === 'dark';
+
+            // 1. Draw node hover disc/shadow
+            context.beginPath();
+            context.arc(x, y, size + 4, 0, Math.PI * 2);
+            context.fillStyle = isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)';
+            context.fill();
+
+            // 2. Draw label background box
+            context.beginPath();
+            if (typeof context.roundRect === 'function') {
+                context.roundRect(boxX, boxY, boxWidth, boxHeight, 4);
+            } else {
+                context.rect(boxX, boxY, boxWidth, boxHeight);
+            }
+            context.fillStyle = isDark ? '#1a1b20' : '#ffffff';
+            context.shadowColor = 'rgba(0, 0, 0, 0.25)';
+            context.shadowBlur = 6;
+            context.shadowOffsetX = 0;
+            context.shadowOffsetY = 2;
+            context.fill();
+            
+            // Reset shadow so it doesn't affect subsequent drawings
+            context.shadowColor = 'transparent';
+            context.shadowBlur = 0;
+
+            // 3. Draw label border
+            context.strokeStyle = isDark ? '#3d3d3d' : '#e0e0e0';
+            context.lineWidth = 1;
+            context.stroke();
+
+            // 4. Draw node itself (so it sits on top of the hover disc)
+            context.beginPath();
+            context.arc(x, y, size, 0, Math.PI * 2);
+            context.fillStyle = data.color;
+            context.fill();
+
+            // 5. Draw label text
+            context.fillStyle = isDark ? '#ffffff' : '#2d2d2d';
+            context.fillText(data.label, boxX + 5, y + fontSize / 3);
+        };
+
+        sigma.setSetting('defaultDrawNodeHover', drawHoverFn);
+        sigma.setSetting('hoverRenderer', drawHoverFn);
+
         const pinnedSet = new Set(pinnedIds.map(String));
         const shouldHighlightPinned = highlightPinned && pinnedSet.size > 0;
 
@@ -318,7 +383,13 @@ export default function GraphSettingsController({ selectedNode, pinnedIds = [], 
                     alpha: 0.9,
                 };
             });
-            sigma.setSetting('edgeReducer', null);
+            sigma.setSetting('edgeReducer', (edge, data) => {
+                const defaultEdgeColor = theme === 'dark' ? '#2d3139' : '#cccccc';
+                return {
+                    ...data,
+                    color: defaultEdgeColor
+                };
+            });
         }
 
         sigma.refresh();
@@ -326,7 +397,7 @@ export default function GraphSettingsController({ selectedNode, pinnedIds = [], 
         return () => {
             // nodeReducer and edgeReducer are cleared by the next effect or when unmounted
         };
-    }, [selectedNode, pinnedIds, highlightPinned, hoveredLegendGroup, hoveredBarGroup, hoveredConnectionNode, separateBy, graphType, dynamicCommunityMap, sigma, graph]);
+    }, [selectedNode, pinnedIds, highlightPinned, hoveredLegendGroup, hoveredBarGroup, hoveredConnectionNode, separateBy, graphType, dynamicCommunityMap, sigma, graph, theme]);
 
     return null;
 }

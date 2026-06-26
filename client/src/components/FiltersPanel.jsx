@@ -14,17 +14,17 @@ import { COLORS, SPACING, FONTS } from '../constants/theme';
  * Props:
  * - onApply: callback (filters) ao clicar em Aplicar
  */
-export default function FiltersPanel({ 
-    filters, 
-    onApply, 
-    graphType = 'similaridade', 
-    maxCoautoriaLimit = 50, 
-    isMinimized, 
-    onToggleMinimize, 
-    width = '250px', 
+export default function FiltersPanel({
+    filters,
+    onApply,
+    graphType = 'similaridade',
+    maxCoautoriaLimit = 50,
+    isMinimized,
+    onToggleMinimize,
+    width = '250px',
     height = 'auto',
     style = {},
-    hideHeader = false 
+    hideHeader = false
 }) {
     const [separateBy, setSeparateBy] = useState('partido');
     const [onlyActive, setOnlyActive] = useState(true);
@@ -102,11 +102,11 @@ export default function FiltersPanel({
             if (filters.backboneMethod !== undefined) setBackboneMethod(filters.backboneMethod);
             if (filters.coautoresRange) setCoautoresRange(filters.coautoresRange);
             if (filters.polarizacaoRange) setPolarizacaoRange(filters.polarizacaoRange);
-            
+
             if (filters.expenseCategory !== undefined) setSelectedExpenseCategory(filters.expenseCategory);
             if (filters.expenseYear !== undefined) setSelectedExpenseYear(filters.expenseYear);
             if (filters.proposalType !== undefined) setSelectedProposalType(filters.proposalType);
-            
+
             if (filters.proposalTypes) {
                 setPlChecked(filters.proposalTypes.includes('PL'));
                 setPlpChecked(filters.proposalTypes.includes('PLP'));
@@ -204,6 +204,61 @@ export default function FiltersPanel({
             });
         }
     };
+
+    const getPendingCount = () => {
+        if (!filters) return 0;
+        let count = 0;
+
+        const diff = (current, filterVal, defaultVal) => {
+            const fVal = filterVal !== undefined ? filterVal : defaultVal;
+            return current !== fVal;
+        };
+
+        const rangeDiff = (currentRange, filterRange, defaultMin, defaultMax) => {
+            const fMin = filterRange?.min !== undefined ? filterRange.min : defaultMin;
+            const fMax = filterRange?.max !== undefined ? filterRange.max : defaultMax;
+            return currentRange.min !== fMin || currentRange.max !== fMax;
+        };
+
+        // 1. Common filters
+        if (diff(separateBy, filters.separateBy, 'partido')) count++;
+        if (diff(onlyActive, filters.onlyActive, true)) count++;
+        if (diff(highlightPinned, filters.highlightPinned, true)) count++;
+        if (diff(onlyWithConnections, filters.onlyWithConnections, false)) count++;
+        if (rangeDiff(presence, filters.presence, 0, 100)) count++;
+        if (diff(vertexSize, filters.vertexSize, 'padrao')) count++;
+        if (diff(graphLayout, filters.graphLayout, 'forceatlas2_clusters')) count++;
+        if (diff(communityAlgorithm, filters.communityAlgorithm, 'louvain')) count++;
+        if (diff(backboneEnabled, filters.backboneEnabled, false)) count++;
+        if (diff(backboneMethod, filters.backboneMethod, 'lans')) count++;
+
+        // 2. Similarity graph specific
+        if (graphType === 'similaridade') {
+            if (rangeDiff(voteSimilarity, filters.voteSimilarity, 80, 100)) count++;
+            if (diff(selectedExpenseCategory, filters.expenseCategory, 'Todas')) count++;
+            if (diff(selectedExpenseYear, filters.expenseYear, 'mandato')) count++;
+            if (diff(selectedProposalType, filters.proposalType, 'PL+PLP+PEC')) count++;
+            if (rangeDiff(polarizacaoRange, filters.polarizacaoRange, 50, 100)) count++;
+        }
+
+        // 3. Coauthorship graph specific
+        if (graphType === 'coautoria') {
+            if (rangeDiff(coautoria, filters.coautoria, 1, maxCoautoriaLimit)) count++;
+            if (rangeDiff(coautoresRange, filters.coautoresRange, 2, 333)) count++;
+
+            const fTypes = filters.proposalTypes || ['PL'];
+            const pl = fTypes.includes('PL');
+            const plp = fTypes.includes('PLP');
+            const pec = fTypes.includes('PEC');
+            if (plChecked !== pl || plpChecked !== plp || pecChecked !== pec) {
+                count++;
+            }
+        }
+
+        return count;
+    };
+
+    const pendingCount = getPendingCount();
 
     return (
         <Frame
@@ -495,7 +550,7 @@ export default function FiltersPanel({
                     <Dropdown
                         label={
                             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                Método do backbone 
+                                Método do backbone
                                 <Tooltip text="Escolhe entre algoritmos (High Salience Skeleton ou LANS) para extrair as ligações mais significativas." />
                                 {backboneMethod === 'high_salience_skeleton' && (
                                     <Tooltip text="Aviso: O algoritmo High Salience Skeleton é computacionalmente pesado e pode levar de 10 a 40 segundos para calcular dependendo dos filtros ativos." isWarning={true}>
@@ -565,6 +620,25 @@ export default function FiltersPanel({
                     onClick={handleApply}
                 >
                     Aplicar
+                    {pendingCount > 0 && (
+                        <span style={{
+                            marginLeft: '8px',
+                            backgroundColor: 'rgba(232, 133, 12, 0.8)', // Slightly transparent theme orange
+                            color: COLORS.textWhite,
+                            borderRadius: '999px',
+                            padding: '0 5px',
+                            fontSize: '11px',
+                            fontWeight: '700',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minWidth: '18px',
+                            height: '20px',
+                            lineHeight: '1',
+                        }}>
+                            {pendingCount}
+                        </span>
+                    )}
                 </Button>
             </div>
         </Frame>

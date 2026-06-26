@@ -6,9 +6,37 @@ import { random } from 'graphology-layout';
 import noverlap from 'graphology-layout-noverlap';
 import '@react-sigma/core/lib/style.css';
 
+import { NodeCircleProgram } from 'sigma/rendering';
+
 import { PARTY_COLORS, STATE_COLORS, SEX_COLORS, COLORS, SPACING, FONTS } from '../../constants/theme';
 import GraphEventsController from './GraphEventsController';
 import GraphSettingsController from './GraphSettingsController';
+
+class PinnedNodeProgram extends NodeCircleProgram {
+    drawLabel(context, data, settings) {
+        if (!data.label) return;
+
+        // 1. Pinned decorations (drawn FIRST so they sit behind the label text)
+        const isPinned = window.highlightPinned && window.pinnedLabels && window.pinnedLabels.has(data.label);
+        if (isPinned) {
+            // Circulo amarelado claro em volta do vertice (Halo de Destaque)
+            const HALO_SIZE = 6;
+            context.beginPath();
+            context.arc(data.x, data.y, data.size + HALO_SIZE, 0, Math.PI * 2);
+            context.strokeStyle = 'rgba(253, 224, 71, 0.8)';
+            context.lineWidth = HALO_SIZE;
+            context.stroke();
+        }
+
+        // 2. Draw standard label text (drawn LAST so it is on top of any highlights)
+        const size = settings.labelSize;
+        const font = settings.labelFont;
+        const weight = settings.labelWeight;
+        context.font = `${weight} ${size}px ${font}`;
+        context.fillStyle = settings.labelColor.color;
+        context.fillText(data.label, data.x + data.size + 3, data.y + size / 3);
+    }
+}
 
 const SigmaInstanceListener = ({ onSigmaReady }) => {
     const sigma = useSigma();
@@ -1022,6 +1050,9 @@ const GraphContainer = memo(function GraphContainer({ theme = 'light', filters, 
 
     const sigmaSettings = useMemo(
         () => ({
+            nodeProgramClasses: {
+                circle: PinnedNodeProgram,
+            },
             labelDensity: 0.07,
             labelGridCellSize: 60,
             labelRenderedSizeThreshold: 10,
@@ -1089,60 +1120,21 @@ const GraphContainer = memo(function GraphContainer({ theme = 'light', filters, 
                 context.fillStyle = data.color;
                 context.fill();
 
+                // 4.5. Pinned decorations inside hover
+                const isPinned = window.highlightPinned && window.pinnedLabels && window.pinnedLabels.has(data.label);
+                if (isPinned) {
+                    // Circulo amarelado claro em volta do vertice (Halo de Destaque)
+                    const HALO_SIZE = 6;
+                    context.beginPath();
+                    context.arc(x, y, size + HALO_SIZE, 0, Math.PI * 2);
+                    context.strokeStyle = 'rgba(253, 224, 71, 0.8)';
+                    context.lineWidth = HALO_SIZE;
+                    context.stroke();
+                }
+
                 // 5. Draw label text
                 context.fillStyle = isDark ? '#ffffff' : '#2d2d2d';
                 context.fillText(data.label, boxX + 5, y + fontSize / 3);
-            },
-            drawLabel: (context, data, settings) => {
-                if (!data.label) return;
-
-                // 1. Draw standard label
-                const size = settings.labelSize;
-                const font = settings.labelFont;
-                const weight = settings.labelWeight;
-                context.font = `${weight} ${size}px ${font}`;
-                context.fillStyle = settings.labelColor.color;
-                context.fillText(data.label, data.x + data.size + 3, data.y + size / 3);
-
-                // 2. Pinned decorations
-                if (data.isPinned) {
-                    const BORDER_SIZE = 3;
-                    // Orange border
-                    context.beginPath();
-                    context.arc(data.x, data.y, data.size + BORDER_SIZE / 2, 0, Math.PI * 2);
-                    context.strokeStyle = COLORS.orange;
-                    context.lineWidth = BORDER_SIZE;
-                    context.stroke();
-
-                    // Pin icon
-                    const s = data.size * 0.5;
-                    context.save();
-                    context.translate(data.x, data.y);
-                    
-                    // Pin body
-                    context.beginPath();
-                    context.arc(0, -s * 0.15, s * 0.45, 0, Math.PI * 2);
-                    context.fillStyle = 'rgba(255, 255, 255, 0.95)';
-                    context.fill();
-
-                    // Pin needle
-                    context.beginPath();
-                    context.moveTo(0, s * 0.25);
-                    context.lineTo(0, s * 0.65);
-                    context.strokeStyle = 'rgba(255, 255, 255, 0.95)';
-                    context.lineWidth = s * 0.15;
-                    context.lineCap = 'round';
-                    context.stroke();
-
-                    // Pin head outline
-                    context.beginPath();
-                    context.arc(0, -s * 0.15, s * 0.45, 0, Math.PI * 2);
-                    context.strokeStyle = COLORS.orange;
-                    context.lineWidth = s * 0.12;
-                    context.stroke();
-                    
-                    context.restore();
-                }
             }
         }),
         [],

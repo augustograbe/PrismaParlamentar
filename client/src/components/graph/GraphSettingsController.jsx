@@ -77,6 +77,10 @@ export default function GraphSettingsController({ theme = 'light', selectedNode,
     const graph = sigma.getGraph();
 
     useLayoutEffect(() => {
+        // Update window globals for custom renderers (which strip custom attributes like isPinned)
+        window.pinnedLabels = new Set();
+        window.highlightPinned = highlightPinned;
+
         const NODE_FADE_COLOR = theme === 'dark' ? '#333333' : '#cccccc';
         const EDGE_FADE_COLOR = theme === 'dark' ? '#222222' : '#eeeeee';
 
@@ -137,6 +141,18 @@ export default function GraphSettingsController({ theme = 'light', selectedNode,
             context.fillStyle = data.color;
             context.fill();
 
+            // 4.5. Pinned decorations inside hover
+            const isPinned = window.highlightPinned && window.pinnedLabels && window.pinnedLabels.has(data.label);
+            if (isPinned) {
+                // Circulo amarelado claro em volta do vertice (Halo de Destaque)
+                const HALO_SIZE = 6;
+                context.beginPath();
+                context.arc(x, y, size + HALO_SIZE, 0, Math.PI * 2);
+                context.strokeStyle = 'rgba(253, 224, 71, 0.8)';
+                context.lineWidth = HALO_SIZE;
+                context.stroke();
+            }
+
             // 5. Draw label text
             context.fillStyle = isDark ? '#ffffff' : '#2d2d2d';
             context.fillText(data.label, boxX + 5, y + fontSize / 3);
@@ -171,6 +187,9 @@ export default function GraphSettingsController({ theme = 'light', selectedNode,
 
                 sigma.setSetting('nodeReducer', (node, data) => {
                     const isPinned = shouldHighlightPinned && pinnedSet.has(node);
+                    if (!window.pinnedLabels) window.pinnedLabels = new Set();
+                    const label = graph.getNodeAttribute(node, 'label');
+                    if (isPinned && label) window.pinnedLabels.add(label);
 
                     if (node === selectedNode || node === hoveredConnectionNode) {
                         return {
@@ -208,6 +227,9 @@ export default function GraphSettingsController({ theme = 'light', selectedNode,
 
                 sigma.setSetting('nodeReducer', (node, data) => {
                     const isPinned = shouldHighlightPinned && pinnedSet.has(node);
+                    if (!window.pinnedLabels) window.pinnedLabels = new Set();
+                    const label = graph.getNodeAttribute(node, 'label');
+                    if (isPinned && label) window.pinnedLabels.add(label);
 
                         if (node === selectedNode) {
                             return {
@@ -287,6 +309,9 @@ export default function GraphSettingsController({ theme = 'light', selectedNode,
                 // No bar segment hovered — normal selected node behavior
                 sigma.setSetting('nodeReducer', (node, data) => {
                     const isPinned = shouldHighlightPinned && pinnedSet.has(node);
+                    if (!window.pinnedLabels) window.pinnedLabels = new Set();
+                    const label = graph.getNodeAttribute(node, 'label');
+                    if (isPinned && label) window.pinnedLabels.add(label);
 
                         if (node === selectedNode) {
                             return {
@@ -343,6 +368,9 @@ export default function GraphSettingsController({ theme = 'light', selectedNode,
             // Legend hover: highlight only nodes matching the hovered group
             sigma.setSetting('nodeReducer', (node, data) => {
                 const isPinned = shouldHighlightPinned && pinnedSet.has(node);
+                if (!window.pinnedLabels) window.pinnedLabels = new Set();
+                const label = graph.getNodeAttribute(node, 'label');
+                if (isPinned && label) window.pinnedLabels.add(label);
                 const dep = graph.getNodeAttribute(node, 'deputyData');
                 const groupKey = getNodeGroupKey(dep, separateBy, graphType, dynamicCommunityMap);
                 const isMatch = groupKey === hoveredLegendGroup;
@@ -374,6 +402,9 @@ export default function GraphSettingsController({ theme = 'light', selectedNode,
             // No node selected, no legend hover
             sigma.setSetting('nodeReducer', (node, data) => {
                 const isPinned = shouldHighlightPinned && pinnedSet.has(node);
+                if (!window.pinnedLabels) window.pinnedLabels = new Set();
+                const label = graph.getNodeAttribute(node, 'label');
+                if (isPinned && label) window.pinnedLabels.add(label);
                 return {
                     ...data,
                     color: withOpacity(data.color, 0.9),
@@ -395,7 +426,8 @@ export default function GraphSettingsController({ theme = 'light', selectedNode,
         sigma.refresh();
 
         return () => {
-            // nodeReducer and edgeReducer are cleared by the next effect or when unmounted
+            window.pinnedLabels = undefined;
+            window.highlightPinned = undefined;
         };
     }, [selectedNode, pinnedIds, highlightPinned, hoveredLegendGroup, hoveredBarGroup, hoveredConnectionNode, separateBy, graphType, dynamicCommunityMap, sigma, graph, theme]);
 

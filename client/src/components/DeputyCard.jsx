@@ -605,7 +605,8 @@ export default function DeputyCard({
                                                 transition: 'background-color 0.12s',
                                             }}
                                             onMouseEnter={(e) => {
-                                                e.currentTarget.style.backgroundColor = '#f0f4ff';
+                                                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                                                e.currentTarget.style.backgroundColor = isDark ? '#2b2c36' : '#f0f4ff';
                                                 if (onConnectionHover) onConnectionHover(conn.nodeId);
                                             }}
                                             onMouseLeave={(e) => {

@@ -17,6 +17,7 @@ const REQUIRED_FIELDS = ['nome', 'sigla_partido'];
 const ALL_FIELD_OPTIONS = [
     { value: 'nome', label: 'Nome' },
     { value: 'sigla_partido', label: 'Partido' },
+    { value: 'foto', label: 'Foto' },
     { value: 'sigla_uf', label: 'Estado' },
     { value: 'sexo', label: 'Sexo' },
     { value: 'email', label: 'Email' },

@@ -75,13 +75,14 @@ export default function ActivityCalendar({ deputyId }) {
 
     const getColor = (intensidade, isCurrentYear) => {
         if (!isCurrentYear) return 'transparent';
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
         switch(intensidade) {
             case 1: return '#ffc58a';
             case 2: return COLORS.orangeLight;
             case 3: return COLORS.orange;
             case 4: return '#b86604';
             case 0:
-            default: return '#e0e0e0';
+            default: return isDark ? '#161b22' : '#e0e0e0';
         }
     };
 

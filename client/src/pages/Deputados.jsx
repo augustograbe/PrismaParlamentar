@@ -44,7 +44,7 @@ const DEFAULT_DEPUTADOS_FILTERS = {
 };
 
 const DEFAULT_DEPUTADOS_FIELDS = [
-    'nome', 'sigla_partido', 'sigla_uf', 'presenca', 'situacao'
+    'nome', 'sigla_partido', 'foto', 'sigla_uf', 'presenca', 'situacao'
 ];
 
 function serializeDeputadosParams({ filters, sortBy, selectedFields, currentPage, expenseCategory, expenseYear, proposalType }) {
@@ -578,8 +578,9 @@ export default function Deputados({ theme, toggleTheme }) {
         if (isHovered) {
             bgColor = COLORS.backgroundHover; // Dynamic hover color
         }
+        const hasFoto = selectedFields.includes('foto');
         return {
-            padding: `${SPACING.sm} ${SPACING.lg}`,
+            padding: hasFoto ? `6px ${SPACING.lg}` : `${SPACING.sm} ${SPACING.lg}`,
             color: COLORS.textDark,
             borderBottom: `1px solid ${COLORS.borderLight}`,
             backgroundColor: bgColor,
@@ -587,6 +588,7 @@ export default function Deputados({ theme, toggleTheme }) {
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             maxWidth: '200px',
+            verticalAlign: 'middle',
             transition: 'background-color 0.15s ease',
         };
     };
@@ -622,6 +624,12 @@ export default function Deputados({ theme, toggleTheme }) {
         if (val === null || val === undefined) return '—';
 
         switch (field) {
+            case 'nome':
+                return (
+                    <span style={{ fontWeight: FONTS.weightSemibold }}>
+                        {val}
+                    </span>
+                );
             case 'sigla_partido': {
                 const color = PARTY_COLORS[val] || COLORS.textMedium;
                 return (
@@ -885,7 +893,10 @@ export default function Deputados({ theme, toggleTheme }) {
                                 <thead>
                                     <tr>
                                         <th style={{ ...thStyle, textAlign: 'center', width: '44px' }}>#</th>
-                                        {selectedFields.map((field) => {
+                                        {selectedFields.includes('foto') && (
+                                            <th style={{ ...thStyle, textAlign: 'center', width: '76px' }}>Foto</th>
+                                        )}
+                                        {selectedFields.filter(f => f !== 'foto').map((field) => {
                                             let label = FIELD_LABELS[field];
                                             if (!label) {
                                                 if (field.startsWith('despesas__')) {
@@ -934,7 +945,39 @@ export default function Deputados({ theme, toggleTheme }) {
                                                 <td style={{ ...getTdStyle(idx, isPinned, isHighlighted, isHovered), textAlign: 'center', width: '44px', color: COLORS.textLight, fontSize: FONTS.sizeXs }}>
                                                     {globalIndex}
                                                 </td>
-                                                {selectedFields.map((field) => (
+                                                {selectedFields.includes('foto') && (
+                                                    <td style={{ ...getTdStyle(idx, isPinned, isHighlighted, isHovered), textAlign: 'center', width: '76px' }}>
+                                                        <div style={{
+                                                            width: '48px',
+                                                            height: '48px',
+                                                            borderRadius: '50%',
+                                                            border: `2px solid ${PARTY_COLORS[dep.sigla_partido] || COLORS.deputyHeaderGreen}`,
+                                                            backgroundColor: COLORS.borderLight,
+                                                            overflow: 'hidden',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            margin: '0 auto',
+                                                            boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+                                                        }}>
+                                                            {dep.url_foto || dep.urlFoto ? (
+                                                                <img
+                                                                    src={dep.url_foto || dep.urlFoto}
+                                                                    alt={dep.nome}
+                                                                    style={{
+                                                                        width: '100%',
+                                                                        height: '100%',
+                                                                        objectFit: 'cover',
+                                                                        objectPosition: 'top',
+                                                                    }}
+                                                                />
+                                                            ) : (
+                                                                <span style={{ fontSize: '11px', color: COLORS.textLight }}>Foto</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                )}
+                                                {selectedFields.filter(f => f !== 'foto').map((field) => (
                                                     <td key={field} style={getTdStyle(idx, isPinned, isHighlighted, isHovered)}>
                                                         {renderCell(dep, field)}
                                                     </td>

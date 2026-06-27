@@ -76,16 +76,16 @@ const DEFAULT_GRAFO_FILTERS = {
     onlyActive: true,
     highlightPinned: true,
     onlyWithConnections: false,
-    presence: { min: 0, max: 100 },
-    voteSimilarity: { min: 80, max: 100 },
-    coautoria: { min: 1, max: 50 },
-    vertexSize: 'padrao',
+    presence: { min: 30, max: 100 },
+    voteSimilarity: { min: 90, max: 100 },
+    coautoria: { min: 3, max: 50 },
+    vertexSize: 'conexoes',
     graphLayout: 'forceatlas2_clusters',
     backboneEnabled: false,
     backboneMethod: 'lans',
-    coautoresRange: { min: 2, max: 333 },
-    polarizacaoRange: { min: 50, max: 100 },
-    proposalTypes: ['PL'],
+    coautoresRange: { min: 2, max: 50 },
+    polarizacaoRange: { min: 50, max: 90 },
+    proposalTypes: ['PL', 'PLP', 'PEC'],
     expenseCategory: 'Todas',
     expenseYear: 'mandato',
     proposalType: 'PL+PLP+PEC',
@@ -233,6 +233,22 @@ export default function Grafo({ theme, toggleTheme }) {
     const imgRef = useRef(null);
     const [graphSelectOpen, setGraphSelectOpen] = useState(false);
     const [filters, setFilters] = useState(() => deserializeGrafoFilters(searchParams));
+
+    const handleGraphTypeChange = useCallback((newType) => {
+        setGraphType(newType);
+        setFilters(prev => {
+            const nextFilters = { ...prev };
+            if (newType === 'similaridade') {
+                nextFilters.voteSimilarity = { min: 90, max: 100 };
+                nextFilters.polarizacaoRange = { min: 50, max: 90 };
+            } else {
+                nextFilters.coautoria = { min: 3, max: 50 };
+                nextFilters.coautoresRange = { min: 2, max: 50 };
+                nextFilters.proposalTypes = ['PL', 'PLP', 'PEC'];
+            }
+            return nextFilters;
+        });
+    }, []);
 
     // Fecha/abre painel padrão dependendo de mobile
     useEffect(() => {
@@ -606,10 +622,16 @@ export default function Grafo({ theme, toggleTheme }) {
 
     const handleMaxCoautoriaLoaded = useCallback((maxC) => {
         setMaxCoautoriaLimit(maxC);
-        setFilters(prev => ({
-            ...prev,
-            coautoria: { min: 1, max: maxC }
-        }));
+        setFilters(prev => {
+            const isInitialDefault = (prev.coautoria.min === 3 && prev.coautoria.max === 50) || 
+                                     (prev.coautoria.min === 1 && prev.coautoria.max === 50);
+            const nextMin = isInitialDefault ? 3 : Math.min(prev.coautoria.min, maxC);
+            const nextMax = isInitialDefault ? maxC : Math.min(prev.coautoria.max, maxC);
+            return {
+                ...prev,
+                coautoria: { min: nextMin, max: nextMax }
+            };
+        });
     }, []);
 
     // Handle visible stats from GraphContainer for the legend
@@ -1205,7 +1227,7 @@ export default function Grafo({ theme, toggleTheme }) {
                             <select
                                 id="graph-type-selector"
                                 value={graphType}
-                                onChange={(e) => setGraphType(e.target.value)}
+                                onChange={(e) => handleGraphTypeChange(e.target.value)}
                                 style={{ ...selectLargeStyle, flex: 1 }}
                             >
                                 {graphTypeOptions.map((opt) => (
@@ -1674,7 +1696,7 @@ export default function Grafo({ theme, toggleTheme }) {
                                             <button
                                                 key={opt.value}
                                                 onClick={() => {
-                                                    setGraphType(opt.value);
+                                                    handleGraphTypeChange(opt.value);
                                                     setGraphSelectOpen(false);
                                                 }}
                                                 style={{

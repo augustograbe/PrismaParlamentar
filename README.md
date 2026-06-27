@@ -1,4 +1,14 @@
-# Prisma Parlamentar
+<p align="center">
+  <img src="client/src/assets/logo_sobre_positivo.png" alt="Prisma Parlamentar" width="420">
+</p>
+
+A plataforma **Prisma Parlamentar** foi desenvolvida como parte do Trabalho de Conclusão de Curso do Bacharelado em Ciência da Computação da Universidade Federal do Rio de Janeiro (UFRJ), com o objetivo de ampliar o acesso e a compreensão dos dados públicos disponibilizados pela Câmara dos Deputados.
+
+A aplicação reúne informações legislativas em uma interface moderna e intuitiva, permitindo que estudantes, pesquisadores, jornalistas e cidadãos explorem a atividade parlamentar de forma simples e interativa. Por meio de técnicas de Análise de Redes Sociais, a plataforma possibilita visualizar relações entre deputados, identificar comunidades políticas, analisar padrões de votação e colaboração em proposições, além de investigar métricas de influência e diferentes aspectos da atuação parlamentar.
+
+Ao integrar métodos científicos de análise de redes com recursos avançados de visualização de dados, busca-se reduzir a barreira técnica existente no acesso aos dados legislativos, promovendo maior transparência, acessibilidade e compreensão do funcionamento da Câmara dos Deputados.
+
+***
 
 ## Requisitos
 

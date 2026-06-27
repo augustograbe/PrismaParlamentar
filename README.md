@@ -23,7 +23,7 @@ Para rodar o projeto localmente, você precisará instalar em sua máquina:
 1. Abra um terminal na pasta onde este arquivo se encontra (pasta raiz do projeto).
 2. Instale as dependências Python necessárias:
    ```bash
-   pip install django djangorestframework django-cors-headers
+   pip install -r requirements.txt
    ```
 3. Execute as migrações (para garantir que o banco `db.sqlite3` esteja atualizado com as tabelas de cada Modulo Django):
    ```bash

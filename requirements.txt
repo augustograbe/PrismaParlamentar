@@ -12,7 +12,7 @@ tqdm>=4.66
 networkx>=3.3
 numpy>=1.26
 python-louvain>=0.16      # import community (Louvain)
-igraph>=0.11              # import igraph (Leiden)
+igraph>=0.10,<0.11          # import igraph (Leiden)
 leidenalg>=0.10           # Algoritmo Leiden
 netbone>=0.2.3              # Backbone extraction (HSS, LANS)
 

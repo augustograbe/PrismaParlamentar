@@ -9,6 +9,7 @@ import DeputyProfile from '../components/DeputyProfile';
 import { COLORS, SPACING, FONTS, SHADOWS, PARTY_COLORS } from '../constants/theme';
 import { Pin, PinOff, ArrowUpDown, Filter, Columns } from 'lucide-react';
 import { useIsMobile } from '../utils/useIsMobile';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 const PINNED_STORAGE_KEY = 'prisma_parlamentar_pinned';
 const PAGE_SIZE = 100;
@@ -118,6 +119,7 @@ export default function Deputados({ theme, toggleTheme }) {
     const [loading, setLoading] = useState(true);
     const [pinnedDeputies, setPinnedDeputies] = useState(() => loadPinnedFromStorage());
     const [profileDeputy, setProfileDeputy] = useState(null);
+    useDocumentTitle(profileDeputy?.nome ? profileDeputy.nome : 'Lista');
     const isMobile = useIsMobile();
     const [currentPage, setCurrentPage] = useState(() => initialParams.currentPage);
     const [openPanel, setOpenPanel] = useState(null);

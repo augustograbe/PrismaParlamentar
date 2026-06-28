@@ -4,6 +4,7 @@ import TopBar from '../components/layout/TopBar';
 import DeputyProfile from '../components/DeputyProfile';
 import { COLORS, SPACING, FONTS, SHADOWS } from '../constants/theme';
 import { useIsMobile } from '../utils/useIsMobile';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 import logoSobrePositivo from '../assets/logo_sobre_positivo.png';
 import logoSobreNegativo from '../assets/logo_sobre_negativo.png';
 import logoUfrjPositivo from '../assets/ufrj_logo.png';
@@ -17,6 +18,7 @@ export default function Sobre({ theme, toggleTheme }) {
     const isMobile = useIsMobile();
     const [deputyList, setDeputyList] = useState([]);
     const [profileDeputy, setProfileDeputy] = useState(null);
+    useDocumentTitle(profileDeputy?.nome ? profileDeputy.nome : 'Sobre');
 
     // Carregar a lista de deputados para a pesquisa da barra superior
     useEffect(() => {

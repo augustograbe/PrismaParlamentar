@@ -14,6 +14,7 @@ import Tooltip from '../components/Tooltip';
 import ExportPanel from '../components/ExportPanel';
 import { COLORS, SPACING, FONTS, PARTY_COLORS, STATE_COLORS, SEX_COLORS, SHADOWS } from '../constants/theme';
 import { useIsMobile } from '../utils/useIsMobile';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 const PINNED_STORAGE_KEY = 'prisma_parlamentar_pinned';
 
@@ -208,6 +209,7 @@ export default function Grafo({ theme, toggleTheme }) {
     
     const [selectedDeputy, setSelectedDeputy] = useState(null);
     const [profileDeputy, setProfileDeputy] = useState(null);
+    useDocumentTitle(profileDeputy?.nome ? profileDeputy.nome : 'Grafos');
     const [deputyList, setDeputyList] = useState([]);
     
     const [graphType, setGraphType] = useState(() => searchParams.get('graphType') || 'similaridade');

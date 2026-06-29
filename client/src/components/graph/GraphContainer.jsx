@@ -990,6 +990,7 @@ const GraphContainer = memo(function GraphContainer({ theme = 'light', filters, 
         if (onVisibleStatsChanged) {
             const groupCounts = {};
             const groupColors = {};
+            const groupDetails = {};
             let totalVisible = 0;
             graph.forEachNode((nodeId) => {
                 if (graph.getNodeAttribute(nodeId, 'hidden')) return;
@@ -1019,8 +1020,17 @@ const GraphContainer = memo(function GraphContainer({ theme = 'light', filters, 
                 if (!groupColors[groupKey]) {
                     groupColors[groupKey] = graph.getNodeAttribute(nodeId, 'color') || COLORS.textMedium;
                 }
+
+                if (separateBy === 'comunidade') {
+                    if (!groupDetails[groupKey]) {
+                        groupDetails[groupKey] = { partyCounts: {}, total: 0 };
+                    }
+                    const party = dep.sigla_partido || dep.partido || 'OUTROS';
+                    groupDetails[groupKey].partyCounts[party] = (groupDetails[groupKey].partyCounts[party] || 0) + 1;
+                    groupDetails[groupKey].total += 1;
+                }
             });
-            onVisibleStatsChanged({ separateBy, groupCounts, groupColors, totalVisible });
+            onVisibleStatsChanged({ separateBy, groupCounts, groupColors, totalVisible, groupDetails });
         }
     }, [graph, filters, dataLoaded, applyLayout, graphType, onVisibleStatsChanged, dynamicCommunities, expenseTotals, speechTotals, proposalTotals]);
 

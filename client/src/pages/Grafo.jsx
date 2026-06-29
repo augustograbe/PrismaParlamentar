@@ -7,6 +7,7 @@ import DeputyCard from '../components/DeputyCard';
 import DeputyProfile from '../components/DeputyProfile';
 import PinnedPanel from '../components/PinnedPanel';
 import LegendPanel from '../components/LegendPanel';
+import TreeMapModal from '../components/TreeMapModal';
 import GraphContainer from '../components/graph/GraphContainer';
 import Frame from '../components/Frame';
 import Checkbox from '../components/Checkbox';
@@ -216,6 +217,8 @@ export default function Grafo({ theme, toggleTheme }) {
     const [maxCoautoriaLimit, setMaxCoautoriaLimit] = useState(50);
     const [pinnedDeputies, setPinnedDeputies] = useState(() => loadPinnedFromStorage());
     const [legendData, setLegendData] = useState([]);
+    const [legendDetails, setLegendDetails] = useState({});
+    const [isTreeMapOpen, setIsTreeMapOpen] = useState(false);
     const [totalVisible, setTotalVisible] = useState(0);
     const [hoveredLegendGroup, setHoveredLegendGroup] = useState(null);
     const [hoveredBarGroup, setHoveredBarGroup] = useState(null);
@@ -637,7 +640,7 @@ export default function Grafo({ theme, toggleTheme }) {
     }, []);
 
     // Handle visible stats from GraphContainer for the legend
-    const handleVisibleStatsChanged = useCallback(({ separateBy, groupCounts, groupColors = {}, totalVisible: total }) => {
+    const handleVisibleStatsChanged = useCallback(({ separateBy, groupCounts, groupColors = {}, totalVisible: total, groupDetails = {} }) => {
         const data = Object.entries(groupCounts).map(([key, count]) => ({
             key,
             label: getGroupLabel(key, separateBy),
@@ -645,6 +648,7 @@ export default function Grafo({ theme, toggleTheme }) {
             count,
         }));
         setLegendData(data);
+        setLegendDetails(groupDetails);
         setTotalVisible(total);
     }, []);
 
@@ -1285,6 +1289,8 @@ export default function Grafo({ theme, toggleTheme }) {
                         onHoverGroup={setHoveredLegendGroup}
                         isMinimized={openPanel !== 'legenda'}
                         onToggleMinimize={() => handleTogglePanel('legenda')}
+                        separateBy={filters.separateBy}
+                        onOpenTreeMap={() => setIsTreeMapOpen(true)}
                     />
 
                     {/* Painel de fixados */}
@@ -1551,6 +1557,8 @@ export default function Grafo({ theme, toggleTheme }) {
                                             height="100%"
                                             style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
                                             hideHeader={true}
+                                            separateBy={filters.separateBy}
+                                            onOpenTreeMap={() => setIsTreeMapOpen(true)}
                                         />
                                     )}
 
@@ -1726,6 +1734,14 @@ export default function Grafo({ theme, toggleTheme }) {
                     </div>
                 </>
             )}
+
+            <TreeMapModal
+                isOpen={isTreeMapOpen}
+                onClose={() => setIsTreeMapOpen(false)}
+                legendData={legendData}
+                legendDetails={legendDetails}
+                totalVisible={totalVisible}
+            />
         </div>
     );
 }

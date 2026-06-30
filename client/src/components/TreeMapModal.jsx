@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { computeTreemapLayout } from '../utils/treemapLayout';
+import { generateExportFilename } from '../utils/exportUtils';
 import Button from './Button';
 import { COLORS, SPACING, FONTS, SHADOWS } from '../constants/theme';
 
@@ -65,7 +66,9 @@ export default function TreeMapModal({
     onClose,
     legendData = [],
     legendDetails = {},
-    totalVisible = 0
+    totalVisible = 0,
+    graphType = 'similaridade',
+    filters = {}
 }) {
     const containerRef = useRef(null);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -274,10 +277,10 @@ export default function TreeMapModal({
         });
 
         const link = document.createElement('a');
-        link.download = `mapa-de-arvores-comunidades-${new Date().toISOString().slice(0, 10)}.png`;
+        link.download = generateExportFilename('mapa-de-arvores-comunidades', graphType, filters);
         link.href = canvas.toDataURL('image/png');
         link.click();
-    }, [communityItems, totalVisible, fontMultiplier]);
+    }, [communityItems, totalVisible, fontMultiplier, graphType, filters]);
 
     if (!isOpen) return null;
 

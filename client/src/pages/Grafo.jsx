@@ -16,6 +16,7 @@ import ExportPanel from '../components/ExportPanel';
 import { COLORS, SPACING, FONTS, PARTY_COLORS, STATE_COLORS, SEX_COLORS, SHADOWS } from '../constants/theme';
 import { useIsMobile } from '../utils/useIsMobile';
 import { useDocumentTitle } from '../utils/useDocumentTitle';
+import { generateExportFilename } from '../utils/exportUtils';
 
 const PINNED_STORAGE_KEY = 'prisma_parlamentar_pinned';
 
@@ -597,13 +598,13 @@ export default function Grafo({ theme, toggleTheme }) {
             }
             
             const link = document.createElement('a');
-            link.download = `grafo-${graphType}-${new Date().toISOString().slice(0, 10)}.png`;
+            link.download = generateExportFilename('grafo', graphType, filters);
             link.href = exportCanvas.toDataURL("image/png");
             link.click();
         } catch (error) {
             console.error("Erro ao baixar imagem recortada:", error);
         }
-    }, [cropPercent, addLegend, legendScale, legendData, totalVisible, graphType]);
+    }, [cropPercent, addLegend, legendScale, legendData, totalVisible, graphType, filters]);
 
     const handleCloseCard = useCallback(() => {
         setSelectedDeputy(null);
@@ -1741,6 +1742,8 @@ export default function Grafo({ theme, toggleTheme }) {
                 legendData={legendData}
                 legendDetails={legendDetails}
                 totalVisible={totalVisible}
+                graphType={graphType}
+                filters={filters}
             />
         </div>
     );
